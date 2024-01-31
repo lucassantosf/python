@@ -25,3 +25,7 @@
 # Run Django server local
 
     python3 manage.py runserver
+
+# Generate statics files
+
+    python3 manage.py collectstatic
