@@ -1,9 +1,13 @@
 <div class="recipe recipe-list-item">
     <div class="recipe-cover">
-        <img src="https://via.placeholder.com/1280x720.png/269fe6" alt="temp">
+        <a href="{% url 'recipes-recipe' recipe.id %}">
+            <img src="{{recipe.cover.url}}" alt="temp">
+        </a>
     </div>
     <div class="recipe-title-container">
-        <h2 class="recipe-title">{{recipe.title}}</h2>
+        <a href="{% url 'recipes-recipe' recipe.id %}">
+            <h2 class="recipe-title">{{recipe.title}}</h2>
+        </a>
     </div>
 
     <div class="recipe-author">
@@ -43,11 +47,21 @@
             </div>
         </div>
     </div>
-    <footer class="recipe-footer">
-        <a href="/recipes/123" class="recipe-read-more button button-dark button-full-width">
-            <i class="fas fa-eye">
-                <span>Ver mais...</span>
-            </i>
-        </a>
-    </footer>
+
+    {% if is_detail_page is not True %}
+        <footer class="recipe-footer">
+            <a href="{% url 'recipes-recipe' recipe.id %}" class="recipe-read-more button button-dark button-full-width">
+                <i class="fas fa-eye">
+                    <span>Ver mais...</span>
+                </i>
+            </a>
+        </footer>
+    {% endif %}
+    
+    {% if is_detail_page is True %}
+        <div class="preparation-steps">
+            {{ recipe.preparation_steps|linebreaksbr  }}
+        </div>
+    {% endif %}
+
 </div> 
