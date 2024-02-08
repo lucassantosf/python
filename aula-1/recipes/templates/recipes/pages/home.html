@@ -9,6 +9,12 @@
 
             {% include 'recipes/partials/recipe.html' %}
 
+        {% empty %}
+
+            <div class="center m-y">
+                <h1>Sem receitas</h1>
+            </div>
+                
         {% endfor %}
 
     </div> 
