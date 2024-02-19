@@ -29,3 +29,11 @@
 # Generate statics files
 
     python3 manage.py collectstatic
+
+# Run tests with Coverage
+
+    coverage run -m pytest
+
+    coverage run manage.py test
+
+    coverage html (Open report)
