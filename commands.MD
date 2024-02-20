@@ -37,3 +37,12 @@
     coverage run manage.py test
 
     coverage html (Open report)
+
+# Open python sheel (with venv activated) to Duplicate Recipes quickly
+
+    python3 manage.py shell
+
+    >>> from recipes.models import Recipe
+    >>> r= Recipe.objects.get(id=3)
+    >>> r.id = None
+    >>> r.save()
