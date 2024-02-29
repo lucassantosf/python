@@ -46,3 +46,7 @@
     >>> r= Recipe.objects.get(id=3)
     >>> r.id = None
     >>> r.save()
+
+# Command to Generate Secret 
+
+    python3 -c "import string as s;from random import SystemRandom as sr;print(''.join(sr().choices(s.ascii_letters + s.punctuation, k=64)))"
