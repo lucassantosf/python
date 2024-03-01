@@ -6,7 +6,6 @@ from django.shortcuts import render, get_list_or_404, get_object_or_404
 from utils.recipes.factory import make_recipe
 from .models import Recipe
 from utils.pagination import make_pagination_range,make_pagination
-from django.contrib import messages
 
 PER_PAGE = int(os.environ.get('PER_PAGE', 9))
 
@@ -16,7 +15,6 @@ def home(request):
     ).order_by('-id')
 
     page_obj, pagination_range = make_pagination(request, recipes, PER_PAGE)
-    messages.success(request, 'Legal, voce pesquisou algo')
     
     return render(request, 'recipes/pages/home.html', context={
         'recipes': page_obj,
