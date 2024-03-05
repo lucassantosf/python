@@ -1,5 +1,7 @@
 from django.http import Http404
 from django.shortcuts import redirect,render
+from django.contrib import messages
+
 from .forms import RegisterForm
 
 # Create your views here.
@@ -17,5 +19,10 @@ def register_create(request):
     POST = request.POST
     request.session['register_form_data'] = POST
     form = RegisterForm(POST)
-    
+
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'Your user is created')
+        del(request.session['register_form_data'])
+
     return redirect('authors:register')

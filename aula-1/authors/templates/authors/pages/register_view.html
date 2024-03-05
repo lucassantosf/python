@@ -7,6 +7,9 @@
     <div class="main-content center container">
         Register 
     </div>
+
+    {% include 'recipes/partials/messages.html' %}
+
     <div class="main-content center container">
         <form action="{% url 'authors:create' %}" method="POST">
             {% csrf_token %}
@@ -28,6 +31,16 @@
                 {% endfor %}
 
             </div>
+
+            {% if form.errors %}
+            <div class="form-content form-content-grid">
+                <div class="form-group">
+                    <div class="message message-error">
+                        Please, correct your form and submit again
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="form-content form-content-grid">
                 <div class="form-group">
