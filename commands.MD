@@ -50,3 +50,7 @@
 # Command to Generate Secret 
 
     python3 -c "import string as s;from random import SystemRandom as sr;print(''.join(sr().choices(s.ascii_letters + s.punctuation, k=64)))"
+
+# Install Pip dependencies from file 
+
+    pip3 install -r requirements.txt
