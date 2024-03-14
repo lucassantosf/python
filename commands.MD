@@ -54,3 +54,7 @@
 # Install Pip dependencies from file 
 
     pip3 install -r requirements.txt
+
+# Export dependencis used into a file 
+
+    pip3 freeze > requirements.txt 
