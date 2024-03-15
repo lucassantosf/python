@@ -7,7 +7,7 @@ from utils.recipes.factory import make_recipe
 from .models import Recipe
 from utils.pagination import make_pagination_range,make_pagination
 
-PER_PAGE = int(os.environ.get('PER_PAGE', 9))
+PER_PAGE = int(os.environ.get('PER_PAGE', 6))
 
 def home(request):
     recipes = Recipe.objects.filter(
@@ -22,17 +22,15 @@ def home(request):
     })
 
 def category(request, category_id): 
-    recipes = get_list_or_404(Recipe.objects.filter(
-        category__id=category_id,
+    recipes = Recipe.objects.filter(
         is_published=True,
-    ).order_by('-id'))
+    ).order_by('-id')
 
     page_obj, pagination_range = make_pagination(request, recipes, PER_PAGE)
 
-    return render(request, 'recipes/pages/category.html', context={
+    return render(request, 'recipes/pages/home.html', context={
         'recipes': page_obj,
-        'pagination_range': pagination_range,
-        'title': f'{recipes[0].category.name} - Category'
+        'pagination_range': pagination_range
     })
 
 def recipe(request, id):

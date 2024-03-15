@@ -58,3 +58,21 @@
 # Export dependencis used into a file 
 
     pip3 freeze > requirements.txt 
+
+# Run Pytest with mark 
+
+    After configurated on pyest.ini the mark. : 
+
+    functional_test: Run tests that are selenium based
+
+    Command: (Execute only this mark)
+
+    pytest -m 'functional_test'
+
+    Command: (Execute expect the mark)
+
+    pytest -m 'not functional_test'
+
+# Run Pytest , only one test by its name 
+
+    pytest -k 'test_recipe_home_page_without_recipes_not_found_message'
