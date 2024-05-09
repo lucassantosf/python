@@ -3,8 +3,7 @@ from django.shortcuts import redirect,render
 from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth import authenticate, login, logout
-from .forms import LoginForm, RegisterForm
-from authors.forms.recipe_form import AuthorRecipeForm
+from authors.forms import LoginForm, RegisterForm
 from django.contrib.auth.decorators import login_required
 from recipes.models import Recipe
 
@@ -15,7 +14,7 @@ def register_view(request):
     return render(request, 'authors/pages/register_view.html', {
         'form': form,
         'form_action': reverse('authors:register_create')
-    })
+    }) 
 
 def register_create(request):
     if not request.POST:
@@ -92,84 +91,3 @@ def dashboard(request):
             'recipes':recipes,
         }
     )
-
-@login_required(login_url="authors:login", redirect_field_name='next')
-def dashboard_recipe_edit(request,id):
-    recipe = Recipe.objects.get(
-        is_published = False,
-        author = request.user,
-        pk=id,
-    )
-
-    if not recipe : 
-        raise Http404()
-
-    form = AuthorRecipeForm(
-        data = request.POST or None,
-        files=request.FILES or None,
-        instance=recipe
-    )
-
-    if form.is_valid():
-        # Agora o form é válido
-        recipe = form.save(commit=False)
-        recipe.author = request.user
-        recipe.preparation_steps_is_html = False
-        recipe.is_published = False
-
-        recipe.save()
-        messages.success(request,'Sua receita foi salvo com sucesso')
-        return redirect(reverse('authors:dashboard_recipe_edit',args=(id,)))
-
-    return render(
-        request, 
-        'authors/pages/dashboard_recipe.html',
-        context={
-            'form':form
-        }
-    )
-
-@login_required(login_url="authors:login", redirect_field_name='next')
-def dashboard_recipe_new(request):
-    form = AuthorRecipeForm(
-        data = request.POST or None,
-        files=request.FILES or None,
-    )
-
-    if form.is_valid():
-        # Agora o form é válido
-        recipe: Recipe = form.save(commit=False)
-
-        recipe.author = request.user
-        recipe.preparation_steps_is_html = False
-        recipe.is_published = False
-
-        recipe.save()
-        messages.success(request,'Sua receita foi salva com sucesso')
-        return redirect(reverse('authors:dashboard_recipe_edit',args=(recipe.id,)))
-
-    return render(
-        request, 
-        'authors/pages/dashboard_recipe.html',
-        context={
-            'form':form
-        }
-    )
-
-@login_required(login_url="authors:login", redirect_field_name='next')
-def dashboard_recipe_delete(request):
-    if not request.POST:
-        raise Http404()
-
-    POST = request.POST
-    id = POST.get('id')
-
-    recipe = Recipe.objects.get(
-        is_published = False,
-        author = request.user,
-        pk=id,
-    )
-
-    recipe.delete()
-    messages.success(request,'Sua receita foi deletada com sucesso')
-    return redirect(reverse('authors:dashboard'))
