@@ -53,3 +53,134 @@ sudo apt install postgresql postgresql-contrib -y
 sudo apt install libpq-dev -y
 sudo apt install git
 ```
+##########################################################################################################################
+
+## Instalando o PostgreSQL
+
+```
+# Nós fizemos isso acima
+sudo apt install postgresql postgresql-contrib -y
+```
+
+Caso queira mais detalhes: https://youtu.be/VLpPLaGVJhI  
+Mais avançado: https://youtu.be/FZaEukN_raA
+
+### Configurações
+
+```
+sudo -u postgres psql
+
+# Criando um super usuário
+
+CREATE ROLE usuario WITH LOGIN SUPERUSER CREATEDB CREATEROLE PASSWORD 'senha';
+
+# Criando a base de dados
+
+CREATE DATABASE basededados WITH OWNER usuario;
+
+# Dando permissões
+
+GRANT ALL PRIVILEGES ON DATABASE basededados TO usuario;
+
+# Saindo
+
+\q
+
+sudo systemctl restart postgresql
+```
+
+Caso queira mais detalhes: https://youtu.be/VLpPLaGVJhI  
+Mais avançado: https://youtu.be/FZaEukN_raA
+
+## Configurando o git
+
+```
+git config --global user.name 'Seu nome'
+git config --global user.email 'seu_email@gmail.com'
+git config --global init.defaultBranch main
+
+
+##########################################################################################################################
+
+## Criando um repositório no servidor
+
+Um repositório bare é um repositório transitório (como se fosse um github).
+
+```
+mkdir -p ~/app_bare
+cd ~/app_bare
+git init --bare
+cd ~
+```
+
+Criando o repositório da aplicação
+
+```
+mkdir -p ~/app_repo
+cd ~/app_repo
+git init
+git remote add origin ~/app_bare
+git add . && git commit -m 'Initial'
+cd ~
+```
+
+No seu computador local, adicione o bare como remoto:
+
+```
+git remote add app_bare cursodjangoserver:~/app_bare
+ou 
+git remote add app_bare lucasferreira@34.132.255.135:~/app_bare
+
+git push app_bare <branch>
+```
+
+No servidor, em app_repo, faça pull:
+
+```
+cd ~/app_repo
+git pull origin <branch>
+
+
+## Criando o ambiente virtual
+
+```
+cd  ~/app_repo
+git pull origin <branch>
+python3.9 -m venv venv
+. venv/bin/activate
+
+sudo apt-get update
+sudo apt-get install apturl
+sudo apt-get install brltty
+sudo apt-get install libcairo2-dev
+sudo apt-get install python-apt
+sudo apt-get install python-debian
+sudo apt-get install libsystemd-dev
+sudo apt install ubuntu-drivers-common
+sudo apt install ufw
+sudo apt install python3-urllib3
+sudo apt install usb-creator-gtk
+sudo apt install python3-wadllib
+sudo apt install python3-watchdog
+sudo apt install python3-whitenoise
+sudo apt install python3-wsproto
+sudo apt install python3-xdg
+sudo apt install python3-xkit
+sudo apt install python3-zipp
+
+pip install -r requirements.txt
+
+pip install psycopg2
+pip install gunicorn
+
+python magane.py runserver
+cp .env.example .env
+python magane.py migrate
+```
+
+## Configurando o nginx
+
+Use o arquivo e as explicações disponibilizadas na aula.
+
+
+##########################################################################################################################
