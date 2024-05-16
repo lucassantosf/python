@@ -1,0 +1,27 @@
+# Creating superuser to admin area 
+
+    -Connect in your machine via SSH
+
+    cd ~/app_repo/aula-1/
+
+# Activate Venv 
+
+    . venv/bin/activate 
+
+# Create user
+
+    python manage.py createsuperuser
+
+## Increase nginx client body size on requests 
+
+    sudo nano /etc/nginx/sites-available/curso-django
+
+    server{
+        ...
+
+        client_max_body_size 20M;
+
+        ...
+    }
+
+    sudo systemctl restart nginx
