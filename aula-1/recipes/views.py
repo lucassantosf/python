@@ -11,6 +11,7 @@ from recipes.models import Recipe
 
 PER_PAGE = int(os.environ.get('PER_PAGE', 6))
 
+from django.shortcuts import render
 
 class RecipeListViewBase(ListView):
     model = Recipe
@@ -150,3 +151,17 @@ class RecipeDetailAPI(RecipeDetail):
             recipe_dict,
             safe=False,
         )
+
+
+def theory(request, *args, **kwargs):
+    recipes = Recipe.objects.values('id', 'title')
+
+    context = {
+        'recipes': recipes
+    }
+
+    return render(
+        request,
+        'recipes/pages/theory.html',
+        context=context
+    )
