@@ -1,17 +1,34 @@
 import os
 
 from django.db.models import Q
+from django.db.models.aggregates import Count
+from django.forms.models import model_to_dict
 from django.http import JsonResponse
 from django.http.response import Http404
+from django.shortcuts import render
 from django.views.generic import DetailView, ListView
 from utils.pagination import make_pagination
-from django.forms.models import model_to_dict
 
 from recipes.models import Recipe
 
 PER_PAGE = int(os.environ.get('PER_PAGE', 6))
 
-from django.shortcuts import render
+
+def theory(request, *args, **kwargs):
+    recipes = Recipe.objects.values('id', 'title')[:5]
+    number_of_recipes = recipes.aggregate(number=Count('id'))
+
+    context = {
+        'recipes': recipes,
+        'number_of_recipes': number_of_recipes['number']
+    }
+
+    return render(
+        request,
+        'recipes/pages/theory.html',
+        context=context
+    )
+
 
 class RecipeListViewBase(ListView):
     model = Recipe
@@ -111,6 +128,7 @@ class RecipeListViewSearch(RecipeListViewBase):
 
         return ctx
 
+
 class RecipeDetail(DetailView):
     model = Recipe
     context_object_name = 'recipe'
@@ -129,6 +147,7 @@ class RecipeDetail(DetailView):
         })
 
         return ctx
+
 
 class RecipeDetailAPI(RecipeDetail):
     def render_to_response(self, context, **response_kwargs):
@@ -151,17 +170,3 @@ class RecipeDetailAPI(RecipeDetail):
             recipe_dict,
             safe=False,
         )
-
-
-def theory(request, *args, **kwargs):
-    recipes = Recipe.objects.values('id', 'title')
-
-    context = {
-        'recipes': recipes
-    }
-
-    return render(
-        request,
-        'recipes/pages/theory.html',
-        context=context
-    )
