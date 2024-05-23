@@ -2,6 +2,7 @@ import os
 
 from django.db.models import Q
 from django.db.models.aggregates import Count
+from django.db.models.functions import Concat
 from django.forms.models import model_to_dict
 from django.http import JsonResponse
 from django.http.response import Http404
@@ -15,7 +16,7 @@ PER_PAGE = int(os.environ.get('PER_PAGE', 6))
 
 
 def theory(request, *args, **kwargs):
-    recipes = Recipe.objects.values('id', 'title')[:5]
+    recipes = Recipe.objects.get_published()
     number_of_recipes = recipes.aggregate(number=Count('id'))
 
     context = {
