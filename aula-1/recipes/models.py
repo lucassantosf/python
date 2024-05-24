@@ -4,10 +4,12 @@ from django.db.models import F, Value
 from django.db.models.functions import Concat
 from django.urls import reverse
 from django.utils.text import slugify
-
+from django.contrib.contenttypes.fields import GenericRelation
+from tag.models import Tag
 
 class Category(models.Model):
     name = models.CharField(max_length=65)
+    tags = GenericRelation(Tag, related_query_name='recipes')
 
     def __str__(self):
         return self.name
