@@ -14,6 +14,14 @@
 
     pip3 freeze
 
+# Generate migrations for your project based on the models
+
+    python3 manage.py makemigrations
+
+# Run the migrations 
+
+    python3 manage.py migrate
+
 # Install lib with pip
 
     pip3 install pytest
