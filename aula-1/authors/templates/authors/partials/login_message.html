@@ -1,20 +1,10 @@
 {% if user.is_authenticated %}
-
 <div class="login-message">
-
-    You're logged in with {{ user.username }}
-    
-    See your <a href="{% url 'authors:dashboard' %}">recipes</a>,
-
-    create  <a href="{% url 'authors:dashboard_recipe_new' %}">one</a> or
-
-    <form class="inline-form" action="{% url 'authors:logout' %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="username" value="{{user.username}}">
-        <button class="plaintext-button" type="submit">
-            logout
-        </button>
-    </form> 
+  Your are logged in with 
+  {{ request.user.username }}. 
+  <a href="{% url 'authors:dashboard' %}">See your recipes</a>, 
+  <a href="{% url 'authors:dashboard_recipe_new' %}">create a new recipe</a> or  
+  {% include 'authors/partials/form_logout.html' %}
+  <a class="authors-logout-link" href="#">click here</a> to logout.
 </div>
-
 {% endif %}
