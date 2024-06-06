@@ -84,3 +84,7 @@
 # Run Pytest , only one test by its name 
 
     pytest -k 'test_recipe_home_page_without_recipes_not_found_message'
+
+# Install gettext - Translater
+
+    sudo apt install gettext
