@@ -88,3 +88,11 @@
 # Install gettext - Translater
 
     sudo apt install gettext
+
+# Generate message for translation 
+
+    python3 manage.py makemessages -l "pt_br" -i 'venv'
+
+# Compile message for translation 
+
+    python3 manage.py compilemessages -l "pt_br" -i 'venv'
