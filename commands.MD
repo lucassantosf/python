@@ -10,6 +10,10 @@
 
     .  venv/bin/activate
 
+# Install Django Rest framework 
+
+    pip3 install djangorestframework
+
 # List Libs installed on your venv project, after activate venv
 
     pip3 freeze
@@ -37,6 +41,10 @@
 # Generate statics files
 
     python3 manage.py collectstatic
+
+# Create super user
+
+    python3 manage.py createsuperuser
 
 # Run tests with Coverage
 
