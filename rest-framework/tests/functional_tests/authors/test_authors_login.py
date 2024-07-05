@@ -7,28 +7,29 @@ from selenium.webdriver.common.by import By
 @pytest.mark.functional_test
 class AuthorsLoginTest(AuthorsBaseTest):
     def test_user_valid_data_can_login_successfully(self):
-        string_password='pass'
-        user = User.objects.create_user(username='my_user',password=string_password)
+        string_password = '123456'
+        user = User.objects.create_user(
+            username='lucas', password=string_password
+        )
 
-        #usuario abre page login
+        # Usuário abre a página de login
         self.browser.get(self.live_server_url + reverse('authors:login'))
 
-        #usuario ve login form 
+        # Usuário vê o formulário de login
         form = self.browser.find_element(By.CLASS_NAME, 'main-form')
-
         username_field = self.get_by_placeholder(form, 'Type your username')
         password_field = self.get_by_placeholder(form, 'Type your password')
 
-        #usuario digita username e password 
+        # Usuário digita seu usuário e senha
         username_field.send_keys(user.username)
         password_field.send_keys(string_password)
 
-        #usuario envia form
+        # Usuário envia o formulário
         form.submit()
 
-        #usuario ve msg de login com sucesso e seu nome
+        # Usuário vê a mensagem de login com sucesso e seu nome
         self.assertIn(
-            f"You're logged in with {user.username}",
+            f'Your are logged in with {user.username}.',
             self.browser.find_element(By.TAG_NAME, 'body').text
         )
 
