@@ -104,3 +104,7 @@
 # Compile message for translation 
 
     python3 manage.py compilemessages -l "pt_br" -i 'venv'
+
+# Install cors
+
+    pip3 install django-cors-headers
