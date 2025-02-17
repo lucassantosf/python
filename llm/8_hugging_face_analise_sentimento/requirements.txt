@@ -3,7 +3,7 @@ torchvision==0.17.0
 torchaudio==2.2.0
 huggingface_hub
 transformers>=4.39.1
-numpy==1.24.1
+#numpy==1.24.1
 pysentimiento
 liqfit
 sentencepiece
