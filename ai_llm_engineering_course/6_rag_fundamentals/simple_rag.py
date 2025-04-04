@@ -10,7 +10,6 @@ load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
 
-
 class EmbeddingModel:
     def __init__(self, model_type="openai"):
         self.model_type = model_type
@@ -243,7 +242,6 @@ def main():
         for ref in references:
             print(f"- {ref}")
         print("=" * 50)
-
 
 if __name__ == "__main__":
     main()
