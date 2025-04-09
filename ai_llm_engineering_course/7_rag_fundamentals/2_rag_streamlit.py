@@ -1,3 +1,4 @@
+import streamlit as st
 import csv
 import pandas as pd
 import chromadb
@@ -5,24 +6,24 @@ from chromadb.utils import embedding_functions
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from chromadb.config import Settings
 
+# Suppress tokenizer warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 load_dotenv()
 
-api_key = os.getenv("OPENAI_API_KEY")
 
 class EmbeddingModel:
     def __init__(self, model_type="openai"):
         self.model_type = model_type
         if model_type == "openai":
-            self.client = OpenAI(api_key)
-            self.embedding_fn = embedding_functions.OpenAIEmbedding(
-                api_key,
-                model_name="text-embedding-3-small",
+            self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            self.embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
+                api_key=os.getenv("OPENAI_API_KEY"), model_name="text-embedding-ada-002"
             )
         elif model_type == "chroma":
             self.embedding_fn = embedding_functions.DefaultEmbeddingFunction()
         elif model_type == "nomic":
-            # using Ollama nomic-embed-text model
             self.embedding_fn = embedding_functions.OpenAIEmbeddingFunction(
                 api_key="ollama",
                 api_base="http://localhost:11434/v1",
@@ -38,45 +39,18 @@ class LLMModel:
             self.model_name = "gpt-4o-mini"
         else:
             self.client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
-            self.model_name = "llama3.2"
+            self.model_name = "llama3.2:1b"
 
     def generate_completion(self, messages):
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
-                temperature=0.0,  # 0.0 is deterministic
+                temperature=0.7,
             )
             return response.choices[0].message.content
         except Exception as e:
             return f"Error generating response: {str(e)}"
-
-
-def select_models():
-    # Select LLM Model
-    print("\nSelect LLM Model:")
-    print("1. OpenAI GPT-4")
-    print("2. Ollama Llama2")
-    while True:
-        choice = input("Enter choice (1 or 2): ").strip()
-        if choice in ["1", "2"]:
-            llm_type = "openai" if choice == "1" else "ollama"
-            break
-        print("Please enter either 1 or 2")
-
-    # Select Embedding Model
-    print("\nSelect Embedding Model:")
-    print("1. OpenAI Embeddings")
-    print("2. Chroma Default")
-    print("3. Nomic Embed Text (Ollama)")
-    while True:
-        choice = input("Enter choice (1, 2, or 3): ").strip()
-        if choice in ["1", "2", "3"]:
-            embedding_type = {"1": "openai", "2": "chroma", "3": "nomic"}[choice]
-            break
-        print("Please enter 1, 2, or 3")
-
-    return llm_type, embedding_type
 
 
 def generate_csv():
@@ -121,21 +95,11 @@ def generate_csv():
         writer = csv.DictWriter(file, fieldnames=["id", "fact"])
         writer.writeheader()
         writer.writerows(facts)
-
-    print("CSV file 'space_facts.csv' created successfully!")
-
-
-def load_csv():
-    df = pd.read_csv("space_facts.csv")
-    documents = df["fact"].tolist()
-    print("\nLoaded documents:")
-    for doc in documents:
-        print(f"- {doc}")
-    return documents
+    return facts
 
 
 def setup_chromadb(documents, embedding_model):
-    client = chromadb.Client()
+    client = chromadb.PersistentClient(path="./chromadb", settings=Settings(allow_reset=True))
 
     try:
         client.delete_collection("space_facts")
@@ -148,17 +112,11 @@ def setup_chromadb(documents, embedding_model):
 
     collection.add(documents=documents, ids=[str(i) for i in range(len(documents))])
 
-    print("\nDocuments added to ChromaDB collection successfully!")
     return collection
 
 
 def find_related_chunks(query, collection, top_k=2):
     results = collection.query(query_texts=[query], n_results=top_k)
-
-    print("\nRelated chunks found:")
-    for doc in results["documents"][0]:
-        print(f"- {doc}")
-
     return list(
         zip(
             results["documents"][0],
@@ -173,17 +131,10 @@ def find_related_chunks(query, collection, top_k=2):
 
 def augment_prompt(query, related_chunks):
     context = "\n".join([chunk[0] for chunk in related_chunks])
-    augmented_prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
-
-    print("\nAugmented prompt: ⤵️")
-    print(augmented_prompt)
-
-    return augmented_prompt
+    return f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
 
 
 def rag_pipeline(query, collection, llm_model, top_k=2):
-    print(f"\nProcessing query: {query}")
-
     related_chunks = find_related_chunks(query, collection, top_k)
     augmented_prompt = augment_prompt(query, related_chunks)
 
@@ -197,51 +148,99 @@ def rag_pipeline(query, collection, llm_model, top_k=2):
         ]
     )
 
-    print("\nGenerated response:")
-    print(response)
-
     references = [chunk[0] for chunk in related_chunks]
-    return response, references
+    return response, references, augmented_prompt
 
 
-def main():
-    print("Starting the RAG pipeline demo...")
+def streamlit_app():
+    st.set_page_config(page_title="Space Facts RAG", layout="wide")
+    st.title("🚀 Space Facts RAG System")
 
-    # Select models
-    llm_type, embedding_type = select_models()
+    # Sidebar for model selection
+    st.sidebar.title("Model Configuration")
 
-    # Initialize models
-    llm_model = LLMModel(llm_type)
-    embedding_model = EmbeddingModel(embedding_type)
+    llm_type = st.sidebar.radio(
+        "Select LLM Model:",
+        ["openai", "ollama"],
+        format_func=lambda x: "OpenAI GPT-4" if x == "openai" else "Ollama Llama2",
+    )
 
-    print(f"\nUsing LLM: {llm_type.upper()}")
-    print(f"Using Embeddings: {embedding_type.upper()}")
+    embedding_type = st.sidebar.radio(
+        "Select Embedding Model:",
+        ["openai", "chroma", "nomic"],
+        format_func=lambda x: {
+            "openai": "OpenAI Embeddings",
+            "chroma": "Chroma Default",
+            "nomic": "Nomic Embed Text (Ollama)",
+        }[x],
+    )
 
-    # Generate and load data
-    generate_csv()
-    documents = load_csv()
+    # Initialize session state
+    if "initialized" not in st.session_state:
+        st.session_state.initialized = False
+        st.session_state.facts = generate_csv()
 
-    # Setup ChromaDB
-    collection = setup_chromadb(documents, embedding_model)
+        # Initialize models
+        st.session_state.llm_model = LLMModel(llm_type)
+        st.session_state.embedding_model = EmbeddingModel(embedding_type)
 
-    # Run queries
-    queries = [
-        "What is the Hubble Space Telescope?",
-        "Tell me about Mars exploration.",
-    ]
+        # Setup ChromaDB
+        documents = [fact["fact"] for fact in st.session_state.facts]
+        st.session_state.collection = setup_chromadb(
+            documents, st.session_state.embedding_model
+        )
+        st.session_state.initialized = True
 
-    for query in queries:
-        print("\n" + "=" * 50)
-        print(f"Processing query: {query}")
-        response, references = rag_pipeline(query, collection, llm_model)
+    # If models changed, reinitialize
+    if (
+        st.session_state.llm_model.model_type != llm_type
+        or st.session_state.embedding_model.model_type != embedding_type
+    ):
+        st.session_state.llm_model = LLMModel(llm_type)
+        st.session_state.embedding_model = EmbeddingModel(embedding_type)
+        documents = [fact["fact"] for fact in st.session_state.facts]
+        st.session_state.collection = setup_chromadb(
+            documents, st.session_state.embedding_model
+        )
 
-        print("\nFinal Results:")
-        print("-" * 30)
-        print("Response:", response)
-        print("\nReferences used:")
-        for ref in references:
-            print(f"- {ref}")
-        print("=" * 50)
+    # Display available facts
+    with st.expander("📚 Available Space Facts", expanded=False):
+        for fact in st.session_state.facts:
+            st.write(f"- {fact['fact']}")
+
+    # Query input
+    query = st.text_input(
+        "Enter your question about space:",
+        placeholder="e.g., What is the Hubble Space Telescope?",
+    )
+
+    if query:
+        with st.spinner("Processing your query..."):
+            response, references, augmented_prompt = rag_pipeline(
+                query, st.session_state.collection, st.session_state.llm_model
+            )
+
+            # Display results in columns
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("### 🤖 Response")
+                st.write(response)
+
+            with col2:
+                st.markdown("### 📖 References Used")
+                for ref in references:
+                    st.write(f"- {ref}")
+
+            # Show technical details in expander
+            with st.expander("🔍 Technical Details", expanded=False):
+                st.markdown("#### Augmented Prompt")
+                st.code(augmented_prompt)
+
+                st.markdown("#### Model Configuration")
+                st.write(f"- LLM Model: {llm_type.upper()}")
+                st.write(f"- Embedding Model: {embedding_type.upper()}")
+
 
 if __name__ == "__main__":
-    main()
+    streamlit_app()
