@@ -1,4 +1,4 @@
-from transformers import pipeline, AutoTokenizer
+from transformers import pipeline
 import logging
 from transformers.utils import logging as hf_logging
 

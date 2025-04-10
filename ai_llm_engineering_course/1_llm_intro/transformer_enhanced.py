@@ -2,7 +2,7 @@
 ## must pip install transformers torch
 
 # Basic imports
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline, AutoTokenizer
 
 def create_simple_llm():
     """
@@ -34,7 +34,6 @@ def generate_text(generator, prompt, max_length=50):
 
     return result[0]["generated_text"]
 
-
 # Educational demonstration
 def run_llm_demo():
     """
@@ -58,7 +57,6 @@ def run_llm_demo():
         print("🔸 Generated:", generate_text(generator, prompt))
         input("\nPress Enter to see next example...")
 
-
 # Interactive demo
 def interactive_demo():
     """
@@ -77,7 +75,6 @@ def interactive_demo():
         response = generate_text(generator, prompt)
         print("\n💭 Generated response:")
         print(response)
-
 
 # Educational visualization of the process
 def explain_process():
@@ -99,7 +96,6 @@ def explain_process():
     print(f"Original text: '{text}'")
     print(f"As tokens (numbers): {tokens}")
     print(f"Decoded back: '{decoded}'")
-
 
 if __name__ == "__main__":
     print("Choose a demo:")

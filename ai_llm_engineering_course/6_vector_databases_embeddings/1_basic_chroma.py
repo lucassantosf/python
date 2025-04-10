@@ -1,9 +1,8 @@
 import chromadb
-
-chromadb_client = chromadb.Client()
-
 from chromadb.utils import embedding_functions 
+
 default_ef = embedding_functions.DefaultEmbeddingFunction()
+chromadb_client = chromadb.Client()
 
 # Create collection
 colection_name = "test_collection"

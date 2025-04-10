@@ -18,8 +18,8 @@ completion = client.chat.completions.create(
         {
             "role":"user",
             "content":""" 
-            Solve this math problem step by step: 
-            If John has 5 apples and gives 2 to MAry, how many does he has left?
+                Solve this math problem step by step: 
+                If John has 5 apples and gives 2 to Mary, how many does he has left?
             """}
     ]
 )
