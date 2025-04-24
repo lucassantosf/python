@@ -36,3 +36,7 @@ fastapi
 uvicorn
 
 prettytable
+
+langgraph
+
+tavily-python 
