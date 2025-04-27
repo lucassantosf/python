@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from typing import Optional
 
-
 from openai import OpenAI
 import json
 
@@ -26,7 +25,6 @@ from io import StringIO
 
 # memory = InMemoryStore()
 
-
 # Load environment variables from .env file
 load_dotenv()
 
@@ -41,10 +39,8 @@ from tavily import TavilyClient
 
 tavily = TavilyClient(api_key=tavily)
 
-
 from typing import TypedDict, List
 from pydantic import BaseModel
-
 
 class AgentState(TypedDict):
     task: str
@@ -60,10 +56,8 @@ class AgentState(TypedDict):
     revision_number: int
     max_revisions: int
 
-
 class Queries(BaseModel):
     queries: List[str]
-
 
 # Define the prompts for each node - IMPROVE AS NEEDED
 GATHER_FINANCIALS_PROMPT = """You are an expert financial analyst. Gather the financial data for the given company. Provide detailed financial data."""
@@ -74,7 +68,6 @@ COMPETE_PERFORMANCE_PROMPT = """You are an expert financial analyst. Compare the
 FEEDBACK_PROMPT = """You are a reviewer. Provide detailed feedback and critique for the provided financial comparison report. Include any additional information or revisions needed."""
 WRITE_REPORT_PROMPT = """You are a financial report writer. Write a comprehensive financial report based on the analysis, competitor research, comparison, and feedback provided."""
 RESEARCH_CRITIQUE_PROMPT = """You are a researcher tasked with providing information to address the provided critique. Generate a list of search queries to gather relevant information. Only generate 3 queries max."""
-
 
 def gather_financials_node(state: AgentState):
     # Read the CSV file into a pandas DataFrame
@@ -96,7 +89,6 @@ def gather_financials_node(state: AgentState):
 
     response = model.invoke(messages)
     return {"financial_data": response.content}
-
 
 def analyze_data_node(state: AgentState):
     messages = [
@@ -122,7 +114,6 @@ def research_competitors_node(state: AgentState):
                 content.append(r["content"])
     return {"content": content}
 
-
 def compare_performance_node(state: AgentState):
     content = "\n\n".join(state["content"] or [])
     user_message = HumanMessage(
@@ -138,7 +129,6 @@ def compare_performance_node(state: AgentState):
         "revision_number": state.get("revision_number", 1) + 1,
     }
 
-
 def research_critique_node(state: AgentState):
     queries = model.with_structured_output(Queries).invoke(
         [
@@ -153,7 +143,6 @@ def research_critique_node(state: AgentState):
             content.append(r["content"])
     return {"content": content}
 
-
 def collect_feedback_node(state: AgentState):
     messages = [
         SystemMessage(content=FEEDBACK_PROMPT),
@@ -161,7 +150,6 @@ def collect_feedback_node(state: AgentState):
     ]
     response = model.invoke(messages)
     return {"feedback": response.content}
-
 
 def write_report_node(state: AgentState):
     messages = [
@@ -171,12 +159,10 @@ def write_report_node(state: AgentState):
     response = model.invoke(messages)
     return {"report": response.content}
 
-
 def should_continue(state):
     if state["revision_number"] > state["max_revisions"]:
         return END
     return "collect_feedback"
-
 
 builder = StateGraph(AgentState)
 
@@ -189,9 +175,7 @@ builder.add_node("research_critique", research_critique_node)
 
 builder.add_node("write_report", write_report_node)
 
-
 builder.set_entry_point("gather_financials")
-
 
 builder.add_conditional_edges(
     "compare_performance",
@@ -209,13 +193,11 @@ builder.add_edge("compare_performance", "write_report")
 # graph = builder.compile(checkpointer=memory)
 graph = builder.compile()
 
-
 # ==== For Console Testing ====
 # def read_csv_file(file_path):
 #     with open(file_path, "r") as file:
 #         print("Reading CSV file...")
 #         return file.read()
-
 
 # if __name__ == "__main__":
 #     task = "Analyze the financial performance of our (MegaAICo) company compared to competitors"
@@ -250,7 +232,6 @@ graph = builder.compile()
 
 # ==== Streamlit UI ====
 import streamlit as st
-
 
 def main():
     st.title("Financial Performance Reporting Agent")
@@ -304,8 +285,6 @@ def main():
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
 
-
 if __name__ == "__main__":
     main()
-
 # ==== End Streamlit UI ====
