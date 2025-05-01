@@ -75,7 +75,6 @@ def select_models():
 
     return llm_type,embedding_type
 
-
 def generate_csv():
     facts = [
         {"id": 1, "fact": "The first human to orbit Earth was Yuri Gagarin in 1961."},
@@ -121,7 +120,6 @@ def generate_csv():
 
     print("CSV file 'space_facts.csv' created successfully!")
 
-
 def load_csv():
     df = pd.read_csv("space_facts.csv")
     documents = df["fact"].tolist()
@@ -146,7 +144,6 @@ def setup_chromadb(documents, embedding_model):
 
     print("\nDocuments added to ChromaDB collection successfully!")
     return collection
-
 
 def find_related_chunks(query, collection, top_k=2):
     results = collection.query(query_texts=[query], n_results=top_k)
@@ -235,7 +232,6 @@ def main():
         for ref in references:
             print(f"- {ref}")
         print("=" * 50)
-
 
 if __name__ == "__main__":
     main()

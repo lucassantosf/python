@@ -23,7 +23,7 @@ def create_simple_llm():
 
 generator = create_simple_llm()
 
-prompt = "My dear friend"
+prompt = "Once upon a time, "
 
 # Generate text
 generated_text = generator(prompt, max_length=50, num_return_sequences=1, truncation=True)

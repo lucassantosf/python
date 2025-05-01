@@ -8,7 +8,7 @@ load_dotenv()
 
 model="gpt-4o-mini"
 
-# Create opeani cliet
+# Create opeani client
 client = OpenAI(api_key = os.getenv("OPENAI_API_KEY"))
 
 completion = client.chat.completions.create(

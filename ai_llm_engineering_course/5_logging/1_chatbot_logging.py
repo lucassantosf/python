@@ -148,7 +148,6 @@ def main():
         response = chatbot.chat(user_input)
         print(f"Bot: {response}\n")
 
-
 if __name__ == "__main__":
     try:
         main()

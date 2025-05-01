@@ -12,7 +12,7 @@ res = ollama.chat(
 print(res["message"]["content"])
 # 1. END Chat Call
 
-# 2. With Stream
+# # 2. With Stream
 # res = ollama.chat(
 #     model="llama3.2:1b",
 #     messages=[
@@ -23,18 +23,18 @@ print(res["message"]["content"])
 
 # for chunck in res:
 #     print(chunck["message"]["content"], end="", flush=True)
-# 2. END With Stream
+# # 2. END With Stream
 
-# 3. Generate Example
+# # 3. Generate Example
 # res = ollama.generate(
 #     model="llama3.2:1b",
 #     prompt="why the sky is blue?",
 # )
 # print(ollama.show("llama3.2:1b"))
 # print(res['response'])
-# 3. END Generate Example
+# # 3. END Generate Example
 
-# 4. Create a new model with modelfile (NOT WORKING - CAUSE THE CREATE_MODEL IS NOT A FUNTION)
+# # 4. Create a new model with modelfile (NOT WORKING - CAUSE THE CREATE_MODEL IS NOT A FUNTION)
 # modelfile = """
 # FROM llama3.2:1b
 # SYSTEM You are a very smart assistant who knows everything about ocean. You are very succinct and informative.
@@ -48,4 +48,4 @@ print(res["message"]["content"])
 # res = ollama.generate(model="knowitall", prompt="why is the ocean so salty?")
 
 # print(res["response"])
-# 4. END Create a new model with modelfile
+# # 4. END Create a new model with modelfile

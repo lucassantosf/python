@@ -22,6 +22,9 @@ collection = chromadb_client.get_or_create_collection(
     embedding_function=openai_ef
 )
 
+## This code has two parts: run it in two steps
+
+# # Part 1: Load documents and create embeddings
 # # Function to load documents from a directory
 # def load_documents_from_directory(directory_path):
 #     print("==== Loading documents from directory ====")
@@ -49,8 +52,8 @@ collection = chromadb_client.get_or_create_collection(
 # directory_path = "./data/new_articles"
 # documents = load_documents_from_directory(directory_path)
 
-# # print(f"Loaded {len(documents)} documents")
-# # print(documents)
+# print(f"Loaded {len(documents)} documents")
+# print(documents)
 
 # # Split the documents into chuncks
 # chunked_documents = []
@@ -77,8 +80,10 @@ collection = chromadb_client.get_or_create_collection(
 #     print("==== Inserting chuncks into db... ====")
 #     collection.upsert(
 #         ids=[doc["id"]], documents=[doc["text"]], embeddings=[doc["embedding"]]
-    # )
+#     )
+# # End Part 1: Load documents and create embeddings
 
+# Part 2: Query documents and generate response
 # Function to query documents
 def query_documents(question, n_results=2):
     # query_embedding = get_openai_embedding(question)
@@ -112,10 +117,8 @@ def generate_response(question, relevant_chunks):
             },
         ],
     )
-
     answer = response.choices[0].message
     return answer
-
 
 question = "give me a brief overview of the articles. Be concise, please."
 relevant_chunks = query_documents(question)
@@ -123,3 +126,4 @@ answer = generate_response(question, relevant_chunks)
 
 print("==== Answer ====")
 print(answer.content)
+# End Part 2: Query documents and generate response

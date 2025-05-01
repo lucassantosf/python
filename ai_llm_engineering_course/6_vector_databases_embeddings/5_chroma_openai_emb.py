@@ -60,7 +60,7 @@ for doc in documents:
     collection.upsert(ids=doc["id"],documents=[doc["text"]])
 
 # define a query text 
-query_text = "fin document related to technology company"
+query_text = "fin document related to NLP"
 
 results = collection.query(
     query_texts=[query_text],

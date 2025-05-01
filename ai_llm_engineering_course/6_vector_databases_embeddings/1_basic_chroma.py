@@ -19,7 +19,7 @@ for doc in documents:
     collection.upsert(ids=doc["id"],documents=[doc["text"]])
 
 # Define a query text
-query_text = "Hello, world!"
+query_text = "see you"
 
 results = collection.query(
     query_texts=[query_text],
