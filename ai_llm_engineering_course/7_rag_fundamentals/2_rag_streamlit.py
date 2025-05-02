@@ -12,7 +12,6 @@ from chromadb.config import Settings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 load_dotenv()
 
-
 class EmbeddingModel:
     def __init__(self, model_type="openai"):
         self.model_type = model_type
@@ -29,7 +28,6 @@ class EmbeddingModel:
                 api_base="http://localhost:11434/v1",
                 model_name="nomic-embed-text",
             )
-
 
 class LLMModel:
     def __init__(self, model_type="openai"):
@@ -51,7 +49,6 @@ class LLMModel:
             return response.choices[0].message.content
         except Exception as e:
             return f"Error generating response: {str(e)}"
-
 
 def generate_csv():
     facts = [
@@ -97,7 +94,6 @@ def generate_csv():
         writer.writerows(facts)
     return facts
 
-
 def setup_chromadb(documents, embedding_model):
     client = chromadb.PersistentClient(path="./chromadb", settings=Settings(allow_reset=True))
 
@@ -114,7 +110,6 @@ def setup_chromadb(documents, embedding_model):
 
     return collection
 
-
 def find_related_chunks(query, collection, top_k=2):
     results = collection.query(query_texts=[query], n_results=top_k)
     return list(
@@ -128,11 +123,9 @@ def find_related_chunks(query, collection, top_k=2):
         )
     )
 
-
 def augment_prompt(query, related_chunks):
     context = "\n".join([chunk[0] for chunk in related_chunks])
     return f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
-
 
 def rag_pipeline(query, collection, llm_model, top_k=2):
     related_chunks = find_related_chunks(query, collection, top_k)
@@ -150,7 +143,6 @@ def rag_pipeline(query, collection, llm_model, top_k=2):
 
     references = [chunk[0] for chunk in related_chunks]
     return response, references, augmented_prompt
-
 
 def streamlit_app():
     st.set_page_config(page_title="Space Facts RAG", layout="wide")
@@ -240,7 +232,6 @@ def streamlit_app():
                 st.markdown("#### Model Configuration")
                 st.write(f"- LLM Model: {llm_type.upper()}")
                 st.write(f"- Embedding Model: {embedding_type.upper()}")
-
 
 if __name__ == "__main__":
     streamlit_app()
