@@ -1,10 +1,20 @@
-# import libraries for frontend
-import streamlit as st
-
-# import libraries for backend
+import streamlit as st 
 import chromadb
+import os 
+import PyPDF2
+import uuid
 from chromadb.utils import embedding_functions
 from openai import OpenAI
+from dotenv import load_dotenv
+
+# Suppress tokenizer warnings
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+load_dotenv()
+
+# Constants 
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
 
 class SimpleRAGSystem:
     """Simple RAG implementation"""
@@ -119,15 +129,56 @@ class SimpleRAGSystem:
             st.error(f"Error generating response: {str(e)}")
             return None
 
-    def get_embedding_info(self):
-        """Get information about current embedding model"""
-        model_selector = SimpleModelSelector()
-        model_info = model_selector.embedding_models[self.embedding_model]
-        return {
-            "name": model_info["name"],
-            "dimensions": model_info["dimensions"],
-            "model": self.embedding_model,
-        } 
+class SimplePDFProcessor:
+    """Handle PDF processing and chunking"""
+
+    def __init__(self,chunk_size=CHUNK_SIZE,chunk_overlap=CHUNK_OVERLAP):
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+
+    def read_pdf(self, pdf_file):
+        """Read PDF and extract text"""
+        reader = PyPDF2.PdfReader(pdf_file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+
+        return text 
+
+    def create_chunks(self, text, pdf_file):
+        """Split text into chuncs"""
+        chunks = []
+        start = 0
+
+        while start < len(text):
+            # Find end of chunk
+            end = start + self.chunk_size
+
+            # If not at the start, include overlap
+            if start > 0:
+                start = start - self.chunk_overlap 
+
+            # Get chunk 
+            chunk = text[start:end]
+
+            # Try to break at sentence end
+            if end < len(text):
+                last_period = chunk.rfind(".")
+                if last_period != -1:
+                    chunk = chunk[: last_period +1]
+                    end = start + last_period + 1
+
+            chunks.append(
+                {
+                    "id": str(uuid.uuid4()),
+                    "text":chunk,
+                    "metadata":{"source":pdf_file.name},
+                }
+            )
+
+            start = end 
+
+        return chunks
 
 def main():
     
@@ -150,21 +201,55 @@ def main():
         st.error(f"Error initializing RAG system: {str(e)}")
         return 
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    # Division of the page into three columns 
+    _, col2, _ = st.columns([1, 2, 1])
 
+    with col2:
         st.title("💬 Chat with your documents")
 
         # File upload
         pdf_file = st.file_uploader("Upload PDF", type="pdf")
 
-        st.write("Ask your question about your PDF here:")
+        if pdf_file and pdf_file.name not in st.session_state.processed_files:
+            # Process PDF
+            processor = SimplePDFProcessor()
+            with st.spinner("Processing PDF...."):
+                try:
+                    # Extract text
+                    text = processor.read_pdf(pdf_file)
+                    # Create chunks 
+                    chunks = processor.create_chunks(text,pdf_file)
+                    # Add to database
+                    if st.session_state.rag_system.add_documents(chunks):
+                        st.session_state.processed_files.add(pdf_file.name)
+                        st.success(f"Successfully processed {pdf_file.name}")
+                except Exception as e:
+                    st.error(f"Error processing PDF: {str(e)}")
 
-        if "history" not in st.session_state:
-            st.session_state.history = []
+        # Query interface
+        if st.session_state.processed_files:
+            st.subheader("Query Your Documents")
+            query = st.text_input("Ask a question")
 
-        # Caixa de texto que envia ao pressionar Enter
-        user_input = st.text_input('') 
+            if query:
+                with st.spinner("Generating response..."):
+                    # Get relevant chunks
+                    results = st.session_state.rag_system.query_documents(query)
+                    if results and results["documents"]:
+                        # Generate response
+                        response = st.session_state.rag_system.generate_response(
+                            query, results["documents"][0]
+                        )
+
+                        if response:
+                            # Display results
+                            st.markdown("### Answer:")
+                            st.write(response)
+
+                            with st.expander("view Source Passages"):
+                                for idx,doc in enumerate(results["documents"][0],1):
+                                    st.markdown(f"**Passage {idx}:**")
+                                    st.info(doc)
 
 if __name__ == "__main__":
     main()
