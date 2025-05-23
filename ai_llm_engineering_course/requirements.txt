@@ -23,8 +23,6 @@ elevenlabs
 cohere
 sentence-transformers
 
-
-
 # must install this --pip install "unstructured[pdf]"
 
 # for LoRa
@@ -40,3 +38,8 @@ prettytable
 langgraph
 
 tavily-python 
+
+
+# Read gmail with imap 
+
+imap-tools
