@@ -3,6 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import os
+from email_bot_reader_imap import EmailReader
 
 load_dotenv()
 
@@ -31,11 +32,42 @@ class EmailSender:
         except Exception as e:
             print("❌ Erro ao enviar e-mail:", e)
 
+    def reply_email(self, original_msg, reply_body):
+        msg = MIMEMultipart()
+        msg["From"] = self.email
+        msg["To"] = original_msg.from_
+        msg["Subject"] = "Re: " + original_msg.subject
+
+        # Pega o Message-ID dos headers
+        message_id = original_msg.headers.get("Message-ID", None)
+        if message_id:
+            msg["In-Reply-To"] = message_id
+            msg["References"] = message_id
+
+        msg.attach(MIMEText(reply_body, "plain"))
+
+        try:
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.email, self.password)
+                server.send_message(msg)
+                print("Resposta enviada com sucesso.")
+        except Exception as e:
+            print("Erro ao enviar resposta:", e)
+
+# Função principal para ler e-mails e enviar uma resposta - Debug e Tests
+def main():
+    # Ler os e-mails não lidos
+    reader = EmailReader(params={"seen": True})
+    emails = reader.read_emails()
+
+    if emails:
+        original = emails[0]  # ou qualquer outro e-mail da lista
+        # print(dir(original))
+
+        sender = EmailSender()
+        sender.reply_email(original_msg=original['raw'], reply_body="Obrigado pelo seu e-mail!")
+
 # Exemplo de uso
 if __name__ == "__main__":
-    destinatario = os.getenv("TEST_EMAIL_TO")
-    assunto = "Teste de envio via classe Python"
-    mensagem = "Este é um e-mail enviado por uma classe genérica em Python."
-
-    sender = EmailSender()
-    sender.send_email(destinatario, assunto, mensagem)
+    main()

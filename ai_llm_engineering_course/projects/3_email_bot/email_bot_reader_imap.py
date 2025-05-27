@@ -15,11 +15,12 @@ class EmailReader:
     def read_emails(self):
         emails = []
         with MailBox("imap.gmail.com").login(self.email, self.password, initial_folder="INBOX") as mailbox:
-            for msg in mailbox.fetch(AND(seen=self.seen), limit=5, reverse=True):
+            for msg in mailbox.fetch(AND(seen=self.seen), limit=1, reverse=True):
                 emails.append({
                     "id": msg.uid,
                     "from": msg.from_,
                     "subject": msg.subject,
                     "text": msg.text,
+                    "raw": msg,
                 }) 
         return emails
