@@ -28,9 +28,9 @@ class EmailSender:
                 server.starttls()
                 server.login(self.email, self.password)
                 server.send_message(msg)
-                print("✅ E-mail enviado com sucesso.")
+                print("E-mail enviado com sucesso.")
         except Exception as e:
-            print("❌ Erro ao enviar e-mail:", e)
+            print("Erro ao enviar e-mail:", e)
 
     def reply_email(self, original_msg, reply_body):
         msg = MIMEMultipart()
