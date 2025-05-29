@@ -1,4 +1,4 @@
-from email_bot_reader_imap import EmailReader
+from reader import EmailReader
 import chromadb 
 from chromadb.utils import embedding_functions
 
@@ -24,7 +24,7 @@ print("Emails indexed successfully.")
 
 # # Busca semantica
 # res = collection.query(
-#     query_texts=["oferta"],
+#     query_texts=["cadastro"],
 #     n_results=3
 # )
 # for i in range(len(res["ids"][0])):
@@ -34,7 +34,7 @@ print("Emails indexed successfully.")
 #     print(f"Metadados: {res['metadatas'][0][i]}")
 #     print(f"Distância: {res['distances'][0][i]}")
 #     print("---")
-## FIM Busca semantica
+# # FIM Busca semantica
 
 # # Busca geral sem query
 # results = collection.get()

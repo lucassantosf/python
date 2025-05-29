@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import os
-from email_bot_reader_imap import EmailReader
+from reader import EmailReader
 
 load_dotenv()
 

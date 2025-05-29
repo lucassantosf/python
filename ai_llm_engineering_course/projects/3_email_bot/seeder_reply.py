@@ -1,4 +1,6 @@
 from openai import OpenAI
+from reader import EmailReader
+from sender import EmailSender
 
 class LLMModel:
     def __init__(self):
@@ -20,19 +22,17 @@ class IncidentSeeder:
     def __init__(self, llm_model):
         self.llm_model = llm_model
 
-    def generate_incidents_from_problem(self, base_problem):
+    def generate_incident_reply_from_problem(self, base_problem):
         prompt = (
-            f"Considere o seguinte problema relatado por um usuário de um sistema web: '{base_problem}'.\n"
+            f"Considere o seguinte problema relatado por um usuário da nossa plataforma web: '{base_problem}'.\n"
             f"Crie uma única resposta como se fosse de um técnico especialista respondendo esse problema.\n"
             f"A resposta deve conter:\n"
-            f"- Um campo 'description' com o relato do problema em até 200 palavras\n"
-            f"- Um campo 'solution' com a proposta de solução técnica em até 200 palavras sendo proativo e pedindo evidencias do problema (print, anexo, etc) se necessário\n"
-            f"Retorne SOMENTE o JSON, sem nenhuma explicação adicional, sem formatação em Markdown, e sem comentários.\n"
+            f"- Um campo 'solution' com a proposta de solução em até 200 palavras, sendo proativo e pedindo evidencias do problema (print, anexo, etc) se necessário\n"
+            f"Retorne SOMENTE o JSON com apenas a propriedade solution, sem formatação em Markdown\n"
             f"Formato de exemplo:\n"
             f"""[
                 {{
-                    "description": "O botão de login não funciona mesmo após inserir as credenciais corretamente.",
-                    "solution": "Isso pode estar relacionado a scripts JavaScript não carregados corretamente. Verifique o console do navegador para erros e valide se todos os arquivos estão sendo carregados na rede."
+                    "solution": "Crie a solução técnica aqui, pedindo evidências se necessário."
                 }}
             ]"""
         ) 
@@ -40,7 +40,7 @@ class IncidentSeeder:
         messages = [
             {
                 "role": "system",
-                "content": "Você é um gerador de dados fictícios para simular respostas à incidentes de suporte técnico com base em problemas reais",
+                "content": "Você é um gerador de dados fictícios para simular respostas à incidentes de suporte técnico com base em problemas reais do nosso sistema Web.",
             },
             {
                 "role": "user",
@@ -55,10 +55,24 @@ def main():
     llm_model = LLMModel()
     seeder = IncidentSeeder(llm_model)
 
-    problema_base = "O botão de login não funciona mesmo após inserir as credenciais corretamente."
-    incidents = seeder.generate_incidents_from_problem(base_problem=problema_base)
+    # Ler os e-mails não lidos
+    reader = EmailReader(params={"seen": False})
+    emails = reader.read_emails()
+    sender = EmailSender()
 
-    print(incidents)
+    print(f"Total de e-mails lidos: {len(emails)}") 
+
+    for email in emails:
+        print(f"Lendo e-mail de {email['from']} com assunto '{email['subject']}'")
+        print(f"Texto: {email['text']}")
+        print("---")
+
+        problem = email['text']   
+        reply = seeder.generate_incident_reply_from_problem(base_problem=problem)
+        print(reply)
+
+        sender.reply_email(original_msg=email['raw'], reply_body=reply)
+        print("E-mail respondido com sucesso.") 
 
 if __name__ == "__main__":
     main()
