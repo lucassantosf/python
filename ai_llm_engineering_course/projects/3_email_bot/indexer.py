@@ -2,7 +2,7 @@ from reader import EmailReader
 import chromadb 
 from chromadb.utils import embedding_functions
 
-reader = EmailReader({"seen": True})
+reader = EmailReader({"seen": False})
 emails = reader.read_emails()
 
 default_ef = embedding_functions.DefaultEmbeddingFunction()
