@@ -31,19 +31,20 @@ def main():
     collection = chromadb_client.get_or_create_collection("email_bot",embedding_function=default_ef)
 
     for email in emails:
-        //
-
-
         print(f"Creating reply for email {email['from']} subject: {email['subject']}") 
 
         # Busca semantica
         res = collection.query(
-            query_texts="Relatorio de desempenho",
+            query_texts=email['text'],
             n_results=1
         )
-        for i in range(len(res["ids"][0])):
 
-            # STOPPED HERE - ENVIAR RESPOSTA COM O SENDER
+        for i in range(len(res["ids"][0])):
+            # reply = seeder.generate_incident_reply_from_problem(base_problem=problem)
+            # print(reply)
+
+            # sender.reply_email(original_msg=email['raw'], reply_body=reply)
+            # print("E-mail respondido com sucesso.") 
 
             print(f"Resultado {i + 1}")
             print(f"ID: {res['ids'][0][i]}")

@@ -1,24 +1,9 @@
+from utils.model import LLMModel                # Importando o modelo LLM
 from openai import OpenAI
 from reader import EmailReader
 from sender import EmailSender
 
-class LLMModel:
-    def __init__(self):
-        self.client = OpenAI(base_url="http://localhost:11434/v1",api_key="ollama")
-        self.model_name = "llama3.2:1b"
-
-    def generate_completion(self,messages):
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=0.0
-            )
-            return response.choices[0].message.content 
-        except Exception as e:
-            return f"Error generating response: {str(e)}" 
-
-class IncidentSeeder:
+class IncidentReplySeeder:
     def __init__(self, llm_model):
         self.llm_model = llm_model
 
@@ -53,7 +38,7 @@ class IncidentSeeder:
 
 def main():
     llm_model = LLMModel()
-    seeder = IncidentSeeder(llm_model)
+    seeder = IncidentReplySeeder(llm_model)
 
     # Ler os e-mails não lidos
     reader = EmailReader(params={"seen": False})
