@@ -11,8 +11,8 @@ class EmailSender:
     def __init__(self, smtp_server=None, smtp_port=None, email=None, password=None):
         self.smtp_server = smtp_server or "smtp.gmail.com"
         self.smtp_port = smtp_port or 587
-        self.email = email or os.getenv("SMTP_MAIL")
-        self.password = password or os.getenv("SMTP_PWD")
+        self.email = email or os.getenv("MAILER_ADDRESS")
+        self.password = password or os.getenv("MAILER_PWD")
 
     def send_email(self, to_address, subject, body):
         # Cria o corpo da mensagem
@@ -52,19 +52,3 @@ class EmailSender:
                 server.send_message(msg)
         except Exception as e:
             print("Erro ao enviar resposta:", e)
-
-# Função principal para ler e-mails e enviar uma resposta - Debug e Tests
-# def main():
-#     # Ler os e-mails não lidos
-#     reader = EmailReader(params={"seen": True})
-#     emails = reader.read_emails()
-
-#     if emails:
-#         original = emails[0]  # ou qualquer outro e-mail da lista
-
-#         sender = EmailSender()
-#         sender.reply_email(original_msg=original['raw'], reply_body="Obrigado pelo seu e-mail!")
-
-# # Exemplo de uso
-# if __name__ == "__main__":
-#     main()

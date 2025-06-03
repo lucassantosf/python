@@ -1,8 +1,9 @@
-from reader import EmailReader
-import chromadb 
+from utils.reader import EmailReader
 from chromadb.utils import embedding_functions
+import chromadb 
 
-reader = EmailReader({"seen": False})
+print("Indexing emails...")
+reader = EmailReader({"seen": True})
 emails = reader.read_emails()
 
 default_ef = embedding_functions.DefaultEmbeddingFunction()
@@ -17,7 +18,8 @@ for email in emails:
         documents=[email["text"]],
         metadatas=[{
             "from": email["from"],
-            "subject": email["subject"]
+            "subject": email["subject"],
+            "text": email["text"],
         }]
     )
 print("Emails indexed successfully.")

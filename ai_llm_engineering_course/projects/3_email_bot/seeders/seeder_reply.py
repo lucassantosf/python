@@ -1,31 +1,44 @@
 from utils.model import LLMModel                # Importando o modelo LLM
 from openai import OpenAI
-from reader import EmailReader
-from sender import EmailSender
+from utils.reader import EmailReader
+from utils.sender import EmailSender
+from utils.llm_utils import LLMUtils            # Importando utilitários para manipulação de LLM
+import json
 
-class IncidentReplySeeder:
+class IncidentReplySeeder(LLMUtils):
     def __init__(self, llm_model):
         self.llm_model = llm_model
 
-    def generate_incident_reply_from_problem(self, base_problem):
+    def generate_replies_from_email_list(self, email_list):
+        formatted_problems = ""
+        for i, email in enumerate(email_list, start=1):
+            formatted_problems += (
+                f"{i}. De: {email['from']}, Assunto: {email['subject']}\n"
+                f"Problema: {email['text']}\n\n"
+            )
+
         prompt = (
-            f"Considere o seguinte problema relatado por um usuário da nossa plataforma web: '{base_problem}'.\n"
-            f"Crie uma única resposta como se fosse de um técnico especialista respondendo esse problema.\n"
-            f"A resposta deve conter:\n"
-            f"- Um campo 'solution' com a proposta de solução em até 200 palavras, sendo proativo e pedindo evidencias do problema (print, anexo, etc) se necessário\n"
-            f"Retorne SOMENTE o JSON com apenas a propriedade solution, sem formatação em Markdown\n"
-            f"Formato de exemplo:\n"
+            f"Você é um assistente técnico especialista da plataforma web 'LIBERDADE ANIMAL'.\n"
+            f"Recebeu os seguintes problemas reportados por diferentes usuários:\n\n"
+            f"{formatted_problems}\n"
+            f"Para cada problema gere uma resposta diferente com 100 palavras. Seja técnico, solicitando prints ou anexos como evidência se necessário.\n"
+            f"Retorne os resultados em um ÚNICO JSON SEM usar blocos de código (sem crases).:\n\n"
             f"""[
-                {{
-                    "solution": "Crie a solução técnica aqui, pedindo evidências se necessário."
-                }}
+            {{
+                "from": "email do remetente",
+                "subject": "assunto do email",
+                "problem": "problema original",
+                "solution": "resposta técnica"
+            }},
+            ...
             ]"""
-        ) 
+                f"\nNão adicione nenhum outro conteúdo além do JSON descrito."
+            )
 
         messages = [
             {
                 "role": "system",
-                "content": "Você é um gerador de dados fictícios para simular respostas à incidentes de suporte técnico com base em problemas reais do nosso sistema Web.",
+                "content": "Você é um gerador de dados fictícios para simular respostas à incidentes de suporte técnico ocorridos no nosso sistema Web para Gerenciamento de Cachorros e Pedigrees 'LIBERDADE ANIMAL'"
             },
             {
                 "role": "user",
@@ -40,24 +53,40 @@ def main():
     llm_model = LLMModel()
     seeder = IncidentReplySeeder(llm_model)
 
-    # Ler os e-mails não lidos
-    reader = EmailReader(params={"seen": False})
+    print("Lendo os e-mails ...")
+
+    # Ler os e-mails
+    reader = EmailReader(params={"seen": True})
     emails = reader.read_emails()
     sender = EmailSender()
 
     print(f"Total de e-mails lidos: {len(emails)}") 
 
-    for email in emails:
-        print(f"Lendo e-mail de {email['from']} com assunto '{email['subject']}'")
-        print(f"Texto: {email['text']}")
-        print("---")
+    print("Gerando respostas para os e-mails...")
 
-        problem = email['text']   
-        reply = seeder.generate_incident_reply_from_problem(base_problem=problem)
-        print(reply)
+    response_text = seeder.generate_replies_from_email_list(emails)
 
-        sender.reply_email(original_msg=email['raw'], reply_body=reply)
-        print("E-mail respondido com sucesso.") 
+    try:
+        clean_json = seeder.extract_json_from_response(response_text)
+        replies = json.loads(clean_json)
+        print("Respostas geradas:", clean_json)
+    except Exception as e:
+        print("Erro ao converter resposta em JSON:", e)
+        print("Resposta bruta:", response_text)
+        return
+
+    for reply in replies:
+
+        print(f"Respondendo: {reply['from']} - Assunto: {reply['subject']}")
+
+        # opcional: você pode usar um match pelos campos
+        matching_email = next((e for e in emails if e['from'] == reply['from'] and e['subject'] == reply['subject']), None)
+        if matching_email:
+            sender.reply_email(
+                original_msg=matching_email['raw'], 
+                reply_body=reply['solution']
+            )
+            print("E-mail respondido com sucesso.")
 
 if __name__ == "__main__":
     main()

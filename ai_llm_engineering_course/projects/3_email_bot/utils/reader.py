@@ -8,8 +8,8 @@ load_dotenv()
 class EmailReader:
     def __init__(self, params):
         self.params = params
-        self.email = os.getenv("IMAP_MAIL")
-        self.password = os.getenv("IMAP_PWD")
+        self.email = os.getenv("MAILER_ADDRESS")
+        self.password = os.getenv("MAILER_PWD")
         self.seen = params.get("seen", False)
 
     def read_emails(self):

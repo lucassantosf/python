@@ -30,7 +30,7 @@ class IncidentSeeder(LLMUtils):
         messages = [
             {
                 "role": "system",
-                "content": "Você é um gerador de dados fictícios para simular incidentes de suporte técnico ocorridos no nosso sistema Web para Gerenciamento de Cachorros e Pedigrees.",
+                "content": "Você é um gerador de dados fictícios para simular incidentes de suporte técnico ocorridos no nosso sistema Web para Gerenciamento de Cachorros e Pedigrees 'LIBERDADE ANIMAL'.",
             },
             {
                 "role": "user",
@@ -65,7 +65,9 @@ def main():
     # Initialize models
     llm_model = LLMModel()
     seeder = IncidentSeeder(llm_model)
-    sender = EmailSender()
+    sender = EmailSender(email=os.getenv("SEEDER_MAILER"), password=os.getenv("SEEDER_MAILER_PWD"))
+
+    print("Iniciando o Seeder de Incidentes...")
 
     # Generate incidents
     incidents = seeder.generate_incidents()
@@ -73,14 +75,16 @@ def main():
         incidents_list = json.loads(incidents)
         for i,incident in enumerate(incidents_list):
             sender.send_email(
-                to_address=os.getenv("INCIDENTS_RECEIVER_EMAIL"),
+                to_address=os.getenv("SEEDER_INCIDENTS_RECEIVER_EMAIL"),
                 subject=incident['title'],
                 body=incident['description']
             )
-            print(F"E-mail {i} enviado com sucesso.")
+            print(F"E-mail {i + 1} enviado com sucesso.")
     except json.JSONDecodeError as e:
         print("Erro ao converter para JSON:", e)
         print("Conteúdo retornado:", incidents)
+
+    print("Seeder de Incidentes concluído.")
 
 if __name__ == "__main__":
     main()

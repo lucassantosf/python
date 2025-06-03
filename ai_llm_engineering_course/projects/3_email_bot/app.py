@@ -1,27 +1,12 @@
 from openai import OpenAI
-from reader import EmailReader
-from sender import EmailSender
-import chromadb 
+from utils.reader import EmailReader
+from utils.sender import EmailSender
+from utils.model import LLMModel
 from chromadb.utils import embedding_functions
-
-class LLMModel:
-    def __init__(self):
-        self.client = OpenAI(base_url="http://localhost:11434/v1",api_key="ollama")
-        self.model_name = "llama3.2:1b"
-
-    def generate_completion(self,messages):
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=0.0
-            )
-            return response.choices[0].message.content 
-        except Exception as e:
-            return f"Error generating response: {str(e)}" 
+import chromadb
 
 def main():
-    reader = EmailReader(params={"seen": True})
+    reader = EmailReader(params={"seen": False})
     sender = EmailSender()
     emails = reader.read_emails()
 
@@ -44,8 +29,7 @@ def main():
             # print(reply)
 
             # sender.reply_email(original_msg=email['raw'], reply_body=reply)
-            # print("E-mail respondido com sucesso.") 
-
+            # print("E-mail respondido com sucesso.")  
             print(f"Resultado {i + 1}")
             print(f"ID: {res['ids'][0][i]}")
             print(f"Documento: {res['documents'][0][i]}")
