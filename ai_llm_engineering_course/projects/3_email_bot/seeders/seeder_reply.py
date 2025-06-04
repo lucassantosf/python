@@ -56,7 +56,7 @@ def main():
     print("Lendo os e-mails ...")
 
     # Ler os e-mails
-    reader = EmailReader(params={"seen": True})
+    reader = EmailReader(params={"seen": False})
     emails = reader.read_emails()
     sender = EmailSender()
 
