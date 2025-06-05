@@ -15,32 +15,54 @@ def main():
 
     for email in emails:
 
-        tipo = "resposta" if email["is_reply"] else "pergunta"
+        # print(f"Indexing email from {email['from']} with subject '{email['subject']}'")
+        # print(email)
         
-        print(f"Indexing email from {email['from']} with subject '{email['subject']}'")
-        
-        # DEBUG: não esta salvando o tipo correto, ta tudo vazio
-        print({
-            "from": email["from"],
-            "subject": email["subject"],
-            "text": email["text"],
-            "type": tipo,
-            "in_reply_to": email["in_reply_to"] or "",
-            "message_id": email["message_id"] or ""
-        })
+        if email["is_reply"]:
 
-        # collection.upsert(
-        #     ids=[str(email["id"])],
-        #     documents=[email["text"]],
-        #     metadatas=[{
-        #         "from": email["from"],
-        #         "subject": email["subject"],
-        #         "text": email["text"],
-        #         "type": tipo,
-        #         "in_reply_to": email["in_reply_to"] or "",
-        #         "message_id": email["message_id"] or ""
-        #     }]
-        # )
+            # Indexa a resposta
+            collection.upsert(
+                ids=[f"{email['id']}-resposta"],
+                documents=[email["text"]],
+                metadatas=[{
+                    "from": email["from"],
+                    "subject": email["subject"],
+                    "text": email["text"],
+                    "type": "resposta",
+                    "in_reply_to": email["in_reply_to"] or "",
+                    "message_id": email["message_id"] or ""
+                }]
+            )
+
+            # Indexa a pergunta original (se extraída)
+            if email["original_text"]:
+                collection.upsert(
+                    ids=[f"{email['id']}-pergunta"],
+                    documents=[email["original_text"]],
+                    metadatas=[{
+                        "from": email["from"],
+                        "subject": f"[ENC: {email['subject']}]",
+                        "text": email["original_text"],
+                        "type": "pergunta",
+                        "in_reply_to": "",
+                        "message_id": ""  # você não vai saber qual era o ID original nesse caso
+                    }]
+                )
+
+        else:
+            # Email normal (pergunta única)
+            collection.upsert(
+                ids=[str(email["id"])],
+                documents=[email["text"]],
+                metadatas=[{
+                    "from": email["from"],
+                    "subject": email["subject"],
+                    "text": email["text"],
+                    "type": "pergunta",
+                    "in_reply_to": email["in_reply_to"] or "",
+                    "message_id": email["message_id"] or ""
+                }]
+            )
 
     print("Emails indexed successfully.")
 
