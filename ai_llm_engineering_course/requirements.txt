@@ -43,3 +43,7 @@ tavily-python
 # Read gmail with imap 
 
 imap-tools
+google-api-python-client 
+google-auth-httplib2 
+google-auth-oauthlib
+
