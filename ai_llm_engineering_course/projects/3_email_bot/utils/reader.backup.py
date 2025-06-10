@@ -4,7 +4,7 @@ import os
 
 load_dotenv()
 
-# Dados da sua conta Gmail
+# Backup Script para ler e-mails usando IMAP
 class EmailReader:
     def __init__(self, params):
         self.params = params

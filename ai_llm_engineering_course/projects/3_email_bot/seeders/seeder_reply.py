@@ -55,12 +55,12 @@ def main():
 
     print("Lendo os e-mails ...")
 
-    # Ler os e-mails
-    reader = EmailReader(params={"seen": False})
-    emails = reader.read_emails()
+    # Ler os e-mails não lidos
+    reader = EmailReader()
+    emails = reader.read_emails(max_results=5, query='is:unread')
     sender = EmailSender()
 
-    print(f"Total de e-mails lidos: {len(emails)}") 
+    print(f"Total de e-mails lidos: {len(emails)}")
 
     print("Gerando respostas para os e-mails...")
 
@@ -76,14 +76,21 @@ def main():
         return
 
     for reply in replies:
-
         print(f"Respondendo: {reply['from']} - Assunto: {reply['subject']}")
 
-        # opcional: você pode usar um match pelos campos
-        matching_email = next((e for e in emails if e['from'] == reply['from'] and e['subject'] == reply['subject']), None)
+        matching_email = next(
+            (e for e in emails if e['from'] == reply['from'] and e['subject'] == reply['subject']),
+            None
+        )
+
         if matching_email:
             sender.reply_email(
-                original_msg=matching_email['raw'], 
+                original_msg={
+                    "from_": matching_email['from'],
+                    "subject": matching_email['subject'],
+                    "headers": {"Message-ID": matching_email['message_id']},
+                    "thread_id": matching_email['thread_id']
+                },
                 reply_body=reply['solution']
             )
             print("E-mail respondido com sucesso.")
