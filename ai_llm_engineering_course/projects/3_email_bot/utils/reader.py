@@ -16,6 +16,9 @@ SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
 # Dados da sua conta Gmail
 class EmailReader:
+    def __init__(self):
+        self.service = self.authenticate_gmail()
+        
     def authenticate_gmail(self):
         """Faz a autenticação com OAuth2 e retorna o serviço da Gmail API"""
         creds = None
@@ -77,14 +80,13 @@ class EmailReader:
         """Wrapper para chamar o parser recursivo"""
         return self.extract_body(message['payload'])
 
-    def read_emails(self, max_results=5, query='is:unread'):
+    def read_emails(self, max_results=10, query='is:unread'):
         """Lê os e-mails e retorna uma lista simplificada com os campos relevantes"""
-        service = self.authenticate_gmail()
-        threads = self.list_threads(service, max_results=max_results, query=query)
+        threads = self.list_threads(self.service, max_results=max_results, query=query)
 
         emails = []
         for thread in threads:
-            messages = self.get_thread_messages(service, thread['id'])
+            messages = self.get_thread_messages(self.service, thread['id'])
 
             for message in messages:
                 headers = {h['name']: h['value'] for h in message['payload']['headers']}
@@ -103,17 +105,44 @@ class EmailReader:
                 emails.append(email)
         return emails
 
+    def find_email_by_message_id(self, message_id):
+        """Busca um e-mail específico pelo message_id no Gmail"""
+        try:
+            query = f"rfc822msgid:{message_id}"
+            results = self.service.users().messages().list(userId="me", q=query).execute()
+            messages = results.get('messages', [])
+
+            if not messages:
+                return None
+
+            # Pega o primeiro resultado (deve ser único)
+            msg_id = messages[0]['id']
+            msg = self.service.users().messages().get(userId="me", id=msg_id, format="full").execute()
+
+            headers = {header['name']: header['value'] for header in msg['payload']['headers']}
+            message_id = headers.get('Message-ID')
+
+            return {
+                "from": headers.get('From'),
+                "subject": headers.get('Subject'),
+                "message_id": message_id,
+                "thread_id": msg.get('threadId')
+            }
+        except Exception as e:
+            print(f"Erro ao buscar e-mail por message_id: {e}")
+            return None
+
+
 def main():
 
     reader = EmailReader()
-    service = reader.authenticate_gmail()
 
     print("Buscando threads recentes não lidas...")
-    threads = reader.list_threads(service, max_results=1, query='is:unread')
+    threads = reader.list_threads(reader.service, max_results=1, query='is:unread')
 
     for thread in threads:
         print(f"\nThread ID: {thread['id']}")
-        messages = reader.get_thread_messages(service, thread['id'])
+        messages = reader.get_thread_messages(reader.service, thread['id'])
 
         for i, message in enumerate(messages):
             headers = {h['name']: h['value'] for h in message['payload']['headers']}

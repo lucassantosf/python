@@ -10,7 +10,7 @@ class LLMModel:
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
-                temperature=0.0
+                temperature=0.7  # Aumentando a temperatura para gerar respostas mais criativas
             )
             return response.choices[0].message.content 
         except Exception as e:

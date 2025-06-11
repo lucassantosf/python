@@ -1,5 +1,5 @@
 from utils.model import LLMModel                # Importando o modelo LLM
-from utils.sender import EmailSender            # Importando EmailSender para enviar e-mails
+from utils.sender_smtp import EmailSender       # Importando EmailSender para enviar e-mails via smpt
 from dotenv import load_dotenv
 from utils.llm_utils import LLMUtils            # Importando utilitários para manipulação de LLM
 import json
@@ -12,10 +12,25 @@ class IncidentSeeder(LLMUtils):
 
     def generate_incidents(self):
         prompt = (
-            "Gere uma lista com exatamente 10 incidentes técnicos fictícios relatados por usuários do nosso sistema web de gerenciamento de cachorros e pedigrees.\n"
+            "Gere uma lista com exatamente 10 incidentes técnicos DETALHADOS e REALISTAS relatados por usuários do nosso sistema web de gerenciamento de cachorros e pedigrees 'LIBERDADE ANIMAL'.\n\n"
+            "DIRETRIZES PARA OS INCIDENTES:\n"
+            "- Cada incidente deve ser ÚNICO e ESPECÍFICO\n"
+            "- Inclua DETALHES TÉCNICOS como navegadores, versões, dispositivos específicos\n"
+            "- Mencione FUNCIONALIDADES ESPECÍFICAS do sistema (cadastro de pedigree, upload de fotos, geração de relatórios, etc.)\n"
+            "- Inclua PASSOS que o usuário tentou para resolver o problema\n"
+            "- Descreva COMPORTAMENTOS ESPECÍFICOS do sistema (mensagens de erro exatas, comportamentos inesperados)\n"
+            "- Use TERMINOLOGIA TÉCNICA apropriada\n"
+            "- Inclua IMPACTO no trabalho do usuário\n\n"
+            
             "Cada incidente deve conter APENAS:\n"
-            "- Um título curto, direto e realista no campo 'title'\n"
-            "- Uma descrição em primeira pessoa no campo 'description', com aproximadamente 200 palavras\n"
+            "- Um título ESPECÍFICO, TÉCNICO e DETALHADO no campo 'title'\n"
+            "- Uma descrição em primeira pessoa no campo 'description', com EXATAMENTE 200 palavras, rica em detalhes técnicos\n\n"
+            
+            "EXEMPLOS DE TÍTULOS BONS:\n"
+            "- 'Erro 404 ao tentar acessar relatórios de pedigree em dispositivos iOS'\n"
+            "- 'Falha na sincronização de dados do cachorro com a pedigree em diferentes dispositivos'\n"
+            "- 'Incompatibilidade do sistema com navegador Firefox 98.2 ao fazer upload de fotos'\n\n"
+            
             "A resposta deve ser ESTRITAMENTE um array JSON puro. Não inclua nenhuma explicação, título, texto fora do JSON, markdown ou quebras de linha antes ou depois.\n"
             "Exemplo de resposta esperada:\n"
             "[\n"
@@ -30,7 +45,7 @@ class IncidentSeeder(LLMUtils):
         messages = [
             {
                 "role": "system",
-                "content": "Você é um gerador de dados fictícios para simular incidentes de suporte técnico ocorridos no nosso sistema Web para Gerenciamento de Cachorros e Pedigrees 'LIBERDADE ANIMAL'.",
+                "content": "Você é um ESPECIALISTA em criar simulações realistas de problemas técnicos. Você tem profundo conhecimento em desenvolvimento web, UX/UI, bancos de dados, e sistemas operacionais. Você consegue criar cenários detalhados e tecnicamente precisos que simulam problemas reais que usuários enfrentam em sistemas web. Suas descrições são ricas em detalhes técnicos específicos, incluindo mensagens de erro exatas, comportamentos de sistema, e passos de reprodução claros. Você usa terminologia técnica apropriada e cria cenários que parecem ter sido escritos por usuários reais com problemas genuínos."
             },
             {
                 "role": "user",

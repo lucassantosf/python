@@ -3,6 +3,7 @@ import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -57,19 +58,28 @@ class EmailSender:
         except Exception as e:
             print("Erro ao enviar e-mail:", e)
 
-    def reply_email(self, original_msg, reply_body):
+    def reply_email(self, original_msg, reply_body, content_type="plain"):
         """Responde um e-mail usando a API do Gmail"""
+
+        # Validação dos campos essenciais
+        required_fields = ["from_", "subject", "thread_id"]
+        missing_fields = [field for field in required_fields if not original_msg.get(field)]
+
+        if missing_fields:
+            print(f"Erro: Campos ausentes no e-mail original: {', '.join(missing_fields)}")
+            return
+
         msg = MIMEMultipart()
         msg["From"] = self.email
         msg["To"] = original_msg["from_"]
         msg["Subject"] = "Re: " + original_msg["subject"]
 
-        message_id = original_msg.get("headers", {}).get("Message-ID", None)
+        message_id = original_msg.get("headers", {}).get("Message-ID")
         if message_id:
             msg["In-Reply-To"] = message_id
             msg["References"] = message_id
 
-        msg.attach(MIMEText(reply_body, "plain"))
+        msg.attach(MIMEText(reply_body, content_type))
 
         raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
@@ -79,5 +89,7 @@ class EmailSender:
                 body={"raw": raw_message, "threadId": original_msg["thread_id"]}
             ).execute()
             print("Resposta enviada com sucesso!")
+        except HttpError as error:
+            print(f"Erro na API do Gmail: {error}")
         except Exception as e:
-            print("Erro ao enviar resposta:", e)
+            print(f"Erro inesperado ao enviar resposta: {e}")
