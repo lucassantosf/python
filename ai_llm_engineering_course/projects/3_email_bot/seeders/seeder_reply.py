@@ -23,8 +23,9 @@ class IncidentReplySeeder(LLMUtils):
         
         prompt = (
             f"Você é um assistente técnico ESPECIALISTA da plataforma web 'LIBERDADE ANIMAL'.\n"
-            f"Recebeu os seguintes problemas reportados por diferentes usuários:\n\n"
+            f"Recebeu os seguintes {len(email_list)} problemas reportados por diferentes usuários:\n\n"
             f"{formatted_problems}\n"
+            f"IMPORTANTE: Você DEVE gerar EXATAMENTE {len(email_list)} respostas, uma para CADA problema listado acima.\n"
             f"Para cada problema gere uma resposta DETALHADA e CRIATIVA com EXATAMENTE 100 palavras. Seja técnico mas também empático.\n\n"
             f"DIRETRIZES PARA RESPOSTAS:\n"
             f"- Seja MUITO ESPECÍFICO e DETALHADO sobre possíveis causas do problema\n"
@@ -138,10 +139,71 @@ def main():
                 return
         
         print("Respostas geradas:", json.dumps(replies, indent=4))
+        
+        # Verificar se o número de respostas corresponde ao número de emails
+        if len(replies) != len(emails):
+            print(f"AVISO: O modelo gerou {len(replies)} respostas para {len(emails)} emails.")
+            
+            # Se tiver mais respostas que emails, cortar o excesso
+            if len(replies) > len(emails):
+                print(f"Cortando para {len(emails)} respostas...")
+                replies = replies[:len(emails)]
+            
+            # Se tiver menos respostas que emails, gerar respostas adicionais
+            elif len(replies) < len(emails):
+                print(f"Gerando {len(emails) - len(replies)} respostas adicionais...")
+                
+                # Mapear os emails que já têm respostas
+                responded_email_ids = set(reply.get('message_id') for reply in replies)
+                
+                # Identificar emails sem resposta
+                unreplied_emails = [email for email in emails if email['message_id'] not in responded_email_ids]
+                
+                # Gerar respostas adicionais para os emails sem resposta
+                for email in unreplied_emails:
+                    fallback_reply = {
+                        "message_id": email['message_id'],
+                        "from": email['from'],
+                        "subject": email['subject'],
+                        "problem": email['text'][:50] + "..." if len(email['text']) > 50 else email['text'],
+                        "solution": (
+                            f"Prezado(a) usuário,\n\n"
+                            f"Agradecemos por entrar em contato com o suporte da plataforma LIBERDADE ANIMAL "
+                            f"sobre o problema reportado: '{email['subject']}'.\n\n"
+                            f"Estamos analisando sua solicitação e em breve entraremos em contato com mais informações. "
+                            f"Para agilizar o processo, pedimos que nos envie capturas de tela ou qualquer informação adicional "
+                            f"que possa nos ajudar a entender melhor o problema.\n\n"
+                            f"Atenciosamente,\nEquipe de Suporte LIBERDADE ANIMAL"
+                        )
+                    }
+                    replies.append(fallback_reply)
+                
+                print(f"Agora temos {len(replies)} respostas para {len(emails)} emails.")
     except Exception as e:
         print("Erro inesperado ao processar JSON:", e)
         print("Resposta bruta:", response_text)
-        return
+        
+        # Gerar respostas padrão para todos os emails em caso de falha completa
+        print("Gerando respostas padrão para todos os emails...")
+        replies = []
+        for email in emails:
+            fallback_reply = {
+                "message_id": email['message_id'],
+                "from": email['from'],
+                "subject": email['subject'],
+                "problem": email['text'][:50] + "..." if len(email['text']) > 50 else email['text'],
+                "solution": (
+                    f"Prezado(a) usuário,\n\n"
+                    f"Agradecemos por entrar em contato com o suporte da plataforma LIBERDADE ANIMAL "
+                    f"sobre o problema reportado: '{email['subject']}'.\n\n"
+                    f"Estamos analisando sua solicitação e em breve entraremos em contato com mais informações. "
+                    f"Para agilizar o processo, pedimos que nos envie capturas de tela ou qualquer informação adicional "
+                    f"que possa nos ajudar a entender melhor o problema.\n\n"
+                    f"Atenciosamente,\nEquipe de Suporte LIBERDADE ANIMAL"
+                )
+            }
+            replies.append(fallback_reply)
+        print(f"Geradas {len(replies)} respostas padrão.")
 
     # Manter um registro de quais emails foram respondidos (usando message_id como chave única)
     responded_emails = set()
