@@ -25,29 +25,33 @@ class IncidentReplySeeder(LLMUtils):
             f"Você é um assistente técnico ESPECIALISTA da plataforma web 'LIBERDADE ANIMAL'.\n"
             f"Recebeu os seguintes {len(email_list)} problemas reportados por diferentes usuários:\n\n"
             f"{formatted_problems}\n"
-            f"IMPORTANTE: Você DEVE gerar EXATAMENTE {len(email_list)} respostas, uma para CADA problema listado acima.\n"
-            f"Para cada problema gere uma resposta DETALHADA e CRIATIVA com EXATAMENTE 100 palavras. Seja técnico mas também empático.\n\n"
+            f"IMPORTANTE: Você DEVE gerar EXATAMENTE {len(email_list)} respostas DIFERENTES e ÚNICAS, uma para CADA problema listado acima.\n"
+            f"Para cada problema gere uma resposta DETALHADA, TÉCNICA e CRIATIVA com 100-150 palavras. Seja técnico mas também empático.\n\n"
             f"DIRETRIZES PARA RESPOSTAS:\n"
-            f"- Seja MUITO ESPECÍFICO e DETALHADO sobre possíveis causas do problema\n"
-            f"- Sugira SOLUÇÕES TÉCNICAS CONCRETAS (mencione navegadores específicos, versões, configurações)\n"
-            f"- Solicite PRINTS ou VÍDEOS específicos que ajudariam no diagnóstico\n"
-            f"- Mencione FERRAMENTAS DE DIAGNÓSTICO específicas quando relevante\n"
-            f"- Use LINGUAGEM TÉCNICA apropriada para demonstrar expertise\n"
-            f"- Inclua PASSOS ESPECÍFICOS que o usuário deve seguir\n"
-            f"- Seja EMPÁTICO mas PROFISSIONAL\n\n"
+            f"- INVENTE detalhes técnicos específicos para cada problema (não use respostas genéricas)\n"
+            f"- CRIE soluções técnicas diferentes para cada problema, mesmo que sejam similares\n"
+            f"- MENCIONE ferramentas específicas como DevTools, Console de Depuração, Inspetor de Elementos, etc.\n"
+            f"- SUGIRA configurações específicas para resolver o problema (ex: 'Desative a extensão X', 'Atualize para versão Y')\n"
+            f"- INCLUA passos numerados e específicos para resolver o problema\n"
+            f"- VARIE o formato e estrutura das respostas para que não sejam todas iguais\n"
+            f"- PERSONALIZE cada resposta com base no problema específico\n\n"
+            f"EXEMPLOS DE RESPOSTAS TÉCNICAS (apenas para referência, crie suas próprias respostas):\n\n"
+            f"Exemplo 1: 'Identificamos que o erro 404 ao acessar relatórios no iOS está relacionado a um conflito entre o Safari 15.2 e nossa API REST. Recomendamos: 1) Limpe o cache do navegador em Configurações > Safari > Limpar Histórico; 2) Verifique se o iOS está atualizado para versão 15.4+; 3) Tente acessar usando o modo de navegação privada. Se o problema persistir, envie-nos capturas de tela do Console de Erros (abra Safari > Configurações > Avançado > Mostrar menu Desenvolvedor > Desenvolvedor > Console JavaScript).'\n\n"
+            f"Exemplo 2: 'A incompatibilidade com o Chrome 98.1 durante uploads de fotos ocorre devido a uma limitação na API FileReader quando processamos imagens HEIC. Soluções: 1) Converta as imagens para JPG usando o aplicativo Fotos antes do upload; 2) Instale nossa extensão 'LIBERDADE ANIMAL Helper' disponível na Chrome Web Store; 3) Temporariamente, desative a aceleração de hardware em chrome://settings/system. Poderia nos enviar o log de erros (pressione F12 > Console) durante a tentativa de upload para diagnóstico adicional?'\n\n"
             f"Retorne os resultados em um ÚNICO JSON ARRAY SEM usar blocos de código (sem crases).\n\n"
             f"IMPORTANTE: \n"
             f"1. Você DEVE usar EXATAMENTE os mesmos valores de 'message_id', 'from' e 'subject' que foram fornecidos para cada problema.\n"
             f"2. NÃO altere ou invente novos valores para esses campos, pois isso causará falhas no sistema.\n"
             f"3. Sua resposta DEVE ser um ARRAY de objetos JSON, mesmo que seja apenas um único email.\n"
-            f"4. Certifique-se de que sua resposta comece com '[' e termine com ']'.\n\n"
+            f"4. Certifique-se de que sua resposta comece com '[' e termine com ']'.\n"
+            f"5. CADA resposta deve ser ÚNICA e DIFERENTE das outras - isso é CRÍTICO para o treinamento do modelo.\n\n"
             f"""[
             {{
                 "message_id": "id do email",
                 "from": "email do remetente",
                 "subject": "assunto do email",
-                "problem": "problema original",
-                "solution": "resposta técnica"
+                "problem": "resumo do problema",
+                "solution": "resposta técnica detalhada e única para este problema específico"
             }},
             ...
             ]"""
@@ -57,7 +61,7 @@ class IncidentReplySeeder(LLMUtils):
         messages = [
             {
                 "role": "system",
-                "content": "Você é um especialista técnico ALTAMENTE QUALIFICADO que trabalha no suporte da plataforma 'LIBERDADE ANIMAL'. Você tem amplo conhecimento em desenvolvimento web, bancos de dados, redes, e sistemas operacionais. Suas respostas são DETALHADAS, TÉCNICAS e CRIATIVAS, sempre focadas em resolver problemas de forma eficiente. Você usa terminologia técnica apropriada e fornece instruções passo-a-passo claras. Você é capaz de diagnosticar problemas complexos com base em descrições limitadas e sugerir soluções específicas."
+                "content": "Você é um especialista técnico ALTAMENTE QUALIFICADO que trabalha no suporte da plataforma 'LIBERDADE ANIMAL'. Você tem amplo conhecimento em desenvolvimento web, bancos de dados, redes, e sistemas operacionais. Suas respostas são DETALHADAS, TÉCNICAS e CRIATIVAS, sempre focadas em resolver problemas de forma eficiente. IMPORTANTE: Cada resposta que você gera DEVE ser ÚNICA e DIFERENTE das outras, com detalhes técnicos específicos e soluções personalizadas para cada problema. Você DEVE variar o formato, estrutura e conteúdo de suas respostas para que não sejam genéricas. Você DEVE incluir passos específicos, ferramentas de diagnóstico e configurações técnicas em suas respostas. Você DEVE inventar detalhes técnicos plausíveis quando necessário para criar respostas mais específicas e úteis."
             },
             {
                 "role": "user",
@@ -114,28 +118,96 @@ def main():
     response_text = seeder.generate_replies_from_email_list(emails)
 
     try:
-        # Tenta extrair o JSON da resposta
+        # Usar o novo método de análise robusta de JSON
         try:
-            clean_json = seeder.extract_json_from_response(response_text)
-            replies = json.loads(clean_json)
+            print("Usando análise robusta de JSON...")
+            replies = seeder.robust_json_parse(response_text)
+            print(f"JSON processado com sucesso! Encontrados {len(replies)} objetos.")
         except ValueError as e:
-            # Se falhar ao encontrar um array JSON, tenta tratar como um único objeto JSON
-            print("Tentando processar como objeto JSON único...")
-            # Verifica se a resposta parece ser um objeto JSON único
-            if response_text.strip().startswith('{') and response_text.strip().endswith('}'):
-                try:
-                    # Tenta carregar diretamente como um objeto JSON
-                    single_reply = json.loads(response_text)
-                    # Converte para uma lista com um único item
-                    replies = [single_reply]
-                    print("Processado com sucesso como objeto JSON único.")
-                except json.JSONDecodeError:
-                    print("Erro ao converter resposta em JSON:", e)
-                    print("Resposta bruta:", response_text)
+            print(f"Falha na análise robusta: {e}")
+            
+            # Tentar corrigir o JSON na posição específica do erro
+            if "Expecting ',' delimiter" in str(e):
+                error_match = re.search(r'line (\d+) column (\d+)', str(e))
+                if error_match:
+                    error_line = int(error_match.group(1))
+                    error_col = int(error_match.group(2))
+                    
+                    print(f"Tentando corrigir erro específico na linha {error_line}, coluna {error_col}...")
+                    
+                    # Extrair o JSON da resposta
+                    try:
+                        json_text = seeder.extract_json_from_response(response_text)
+                        
+                        # Corrigir o JSON na posição do erro
+                        fixed_json = seeder.fix_json_at_position(json_text, error_line, error_col)
+                        
+                        # Tentar analisar o JSON corrigido
+                        try:
+                            replies = json.loads(fixed_json)
+                            print("JSON corrigido com sucesso!")
+                        except json.JSONDecodeError:
+                            # Se ainda falhar, tentar o método de emergência
+                            print("Tentando método de emergência...")
+                            replies = seeder.emergency_json_fix(json_text)
+                            if not replies:
+                                print("Método de emergência falhou. Tentando extrair objetos individuais...")
+                                
+                                # Última tentativa: extrair objetos individuais
+                                try:
+                                    # Extrair objetos JSON individuais
+                                    objects_text = re.findall(r'{[^{}]*"message_id"[^{}]*"from"[^{}]*"subject"[^{}]*"solution"[^{}]*}', json_text, re.DOTALL)
+                                    
+                                    if objects_text:
+                                        replies = []
+                                        for obj_text in objects_text:
+                                            try:
+                                                # Limpar e analisar cada objeto
+                                                clean_obj = seeder.clean_json_string(obj_text)
+                                                obj = json.loads(clean_obj)
+                                                replies.append(obj)
+                                            except:
+                                                pass
+                                        
+                                        if replies:
+                                            print(f"Extração de objetos individuais bem-sucedida! Encontrados {len(replies)} objetos.")
+                                        else:
+                                            raise ValueError("Não foi possível extrair objetos JSON válidos")
+                                    else:
+                                        raise ValueError("Não foi possível encontrar objetos JSON no texto")
+                                except Exception as ex:
+                                    print(f"Todas as tentativas de extração falharam: {ex}")
+                                    print("Resposta bruta (primeiros 200 caracteres):", response_text[:200])
+                                    
+                                    # Criar respostas padrão como último recurso
+                                    print("Criando respostas padrão como último recurso...")
+                                    replies = []
+                                    for email in emails:
+                                        fallback_reply = {
+                                            "message_id": email['message_id'],
+                                            "from": email['from'],
+                                            "subject": email['subject'],
+                                            "problem": email['text'][:50] + "..." if len(email['text']) > 50 else email['text'],
+                                            "solution": (
+                                                f"Prezado(a) usuário,\n\n"
+                                                f"Agradecemos por entrar em contato com o suporte da plataforma LIBERDADE ANIMAL "
+                                                f"sobre o problema reportado: '{email['subject']}'.\n\n"
+                                                f"Estamos analisando sua solicitação e em breve entraremos em contato com mais informações. "
+                                                f"Para agilizar o processo, pedimos que nos envie capturas de tela ou qualquer informação adicional "
+                                                f"que possa nos ajudar a entender melhor o problema.\n\n"
+                                                f"Atenciosamente,\nEquipe de Suporte LIBERDADE ANIMAL"
+                                            )
+                                        }
+                                        replies.append(fallback_reply)
+                                    print(f"Criadas {len(replies)} respostas padrão.")
+                    except Exception as ex:
+                        print(f"Erro ao tentar corrigir JSON: {ex}")
+                        return
+                else:
+                    print("Não foi possível identificar a posição do erro.")
                     return
             else:
-                print("Erro ao converter resposta em JSON:", e)
-                print("Resposta bruta:", response_text)
+                print("Erro não relacionado a delimitador de vírgula.")
                 return
         
         print("Respostas geradas:", json.dumps(replies, indent=4))
