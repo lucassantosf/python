@@ -345,8 +345,8 @@ def get_default_incidents():
     ]
 
 def main():
-    # Initialize models
-    llm_model = LLMModel()
+    # Initialize models with OpenAI for better quality
+    llm_model = LLMModel(use_openai=True)
     seeder = IncidentSeeder(llm_model)
     sender = EmailSender(email=os.getenv("SEEDER_MAILER"), password=os.getenv("SEEDER_MAILER_PWD"))
 
@@ -355,79 +355,128 @@ def main():
     # Tentar gerar incidentes com o LLM
     try:
         incidents = seeder.generate_incidents()
-        incidents_list = json.loads(incidents)
         
-        # Verificar se temos incidentes válidos
-        if not incidents_list:
-            print("O LLM não gerou incidentes válidos. Usando incidentes padrão...")
-            incidents_list = get_default_incidents()
+        # Tentar extrair e processar o JSON de forma simplificada
+        try:
+            # Extrair o JSON da resposta
+            json_text = incidents
+            
+            # Se o texto não começa com '[', tentar encontrar o início do JSON
+            if not json_text.strip().startswith('['):
+                start = json_text.find('[')
+                if start >= 0:
+                    json_text = json_text[start:]
+            
+            # Limpar o JSON para corrigir problemas simples
+            json_text = json_text.replace(";", ",").replace("'", '"')
+            
+            # Corrigir problemas comuns com vírgulas em descrições
+            json_text = re.sub(r'("description":\s*"[^"]*)"([^"]*")', r'\1\\\"\2', json_text)
+            
+            # Tentar carregar o JSON
+            incidents_list = json.loads(json_text)
+            print(f"JSON processado com sucesso! Encontrados {len(incidents_list)} incidentes.")
+        except Exception as e:
+            print(f"Erro ao processar JSON: {e}")
+            
+            # Tentar uma abordagem mais simples para extrair o JSON
+            try:
+                # Procurar por um array JSON na resposta
+                start = incidents.find("[")
+                end = incidents.rfind("]") + 1
+                if start >= 0 and end > start:
+                    json_text = incidents[start:end]
+                    # Substituir aspas simples por aspas duplas
+                    json_text = json_text.replace("'", '"')
+                    # Substituir pontos e vírgulas por vírgulas
+                    json_text = json_text.replace(";", ",")
+                    # Tentar carregar o JSON
+                    incidents_list = json.loads(json_text)
+                    print(f"JSON extraído com método alternativo! Encontrados {len(incidents_list)} incidentes.")
+                else:
+                    # Se não conseguir extrair o JSON, usar incidentes padrão
+                    print("Não foi possível encontrar um array JSON na resposta. Usando incidentes padrão...")
+                    incidents_list = get_default_incidents()
+            except Exception as e2:
+                print(f"Falha na extração alternativa: {e2}")
+                print("Usando incidentes padrão...")
+                incidents_list = get_default_incidents()
     except Exception as e:
         print(f"Erro ao gerar incidentes com o LLM: {e}")
         print("Usando incidentes padrão...")
         incidents_list = get_default_incidents()
-    try:
-        incidents_list = json.loads(incidents)
+    # Verificar se há títulos duplicados e garantir que temos exatamente 10 incidentes únicos
+    unique_titles = set()
+    unique_incidents = []
+    
+    # Primeiro, filtrar os incidentes para manter apenas os com títulos únicos
+    for incident in incidents_list:
+        title = incident['title']
+        if title not in unique_titles:
+            unique_titles.add(title)
+            unique_incidents.append(incident)
+        else:
+            print(f"Removendo incidente com título duplicado: {title}")
+    
+    # Agora, verificar se temos 10 incidentes únicos
+    if len(unique_incidents) != 10:
+        print(f"AVISO: Temos {len(unique_incidents)} incidentes com títulos únicos em vez de 10.")
         
-        # Validação: garantir que temos exatamente 10 incidentes
-        if len(incidents_list) != 10:
-            print(f"AVISO: O modelo gerou {len(incidents_list)} incidentes em vez de 10.")
-            # Se tiver mais de 10, corta para ficar com apenas 10
-            if len(incidents_list) > 10:
-                print(f"Cortando para 10 incidentes...")
-                incidents_list = incidents_list[:10]
-            # Se tiver menos de 10, gerar incidentes padrão para completar
-            else:
-                missing = 10 - len(incidents_list)
-                print(f"Gerando {missing} incidentes padrão para completar o total de 10...")
+        # Se tiver mais de 10, corta para ficar com apenas 10
+        if len(unique_incidents) > 10:
+            print(f"Cortando para 10 incidentes...")
+            unique_incidents = unique_incidents[:10]
+        
+        # Se tiver menos de 10, gerar incidentes padrão para completar
+        else:
+            missing = 10 - len(unique_incidents)
+            print(f"Gerando {missing} incidentes padrão para completar o total de 10...")
+            
+            # Obter incidentes padrão para completar
+            default_incidents = get_default_incidents()
+            
+            # Adicionar apenas incidentes padrão com títulos que ainda não existem
+            added = 0
+            for incident in default_incidents:
+                if incident['title'] not in unique_titles and added < missing:
+                    unique_incidents.append(incident)
+                    unique_titles.add(incident['title'])
+                    added += 1
+            
+            # Se ainda faltam incidentes, criar novos com títulos modificados
+            if added < missing:
+                remaining = missing - added
+                print(f"Ainda precisamos de {remaining} incidentes únicos. Gerando com títulos modificados...")
                 
-                # Títulos e descrições padrão para completar se necessário
-                default_incidents = [
-                    {
-                        "title": f"Erro técnico #{i+1} no sistema LIBERDADE ANIMAL",
+                for i in range(remaining):
+                    # Criar um título único adicionando um timestamp
+                    import time
+                    timestamp = int(time.time()) + i
+                    
+                    new_incident = {
+                        "title": f"Problema técnico #{timestamp % 1000} no sistema LIBERDADE ANIMAL",
                         "description": f"Estou enfrentando um problema técnico ao utilizar o sistema LIBERDADE ANIMAL. Quando tento acessar a funcionalidade principal, recebo uma mensagem de erro que impede o uso normal da plataforma. Já tentei atualizar a página, limpar o cache do navegador e até mesmo usar um navegador diferente, mas o problema persiste. Este erro está afetando minha produtividade e preciso de uma solução urgente para continuar meu trabalho. Por favor, ajudem a resolver este problema o mais rápido possível. Agradeço antecipadamente pela atenção e suporte."
-                    } for i in range(missing)
-                ]
-                
-                incidents_list.extend(default_incidents)
-                print(f"Agora temos exatamente 10 incidentes para processar.")
-        
-        print(f"Processando {len(incidents_list)} incidentes...")
-        
-        for i, incident in enumerate(incidents_list):
+                    }
+                    
+                    unique_incidents.append(new_incident)
+            
+            print(f"Agora temos exatamente {len(unique_incidents)} incidentes com títulos únicos para processar.")
+    
+    # Atualizar a lista de incidentes para usar apenas os com títulos únicos
+    incidents_list = unique_incidents
+    
+    print(f"Processando {len(incidents_list)} incidentes...")
+    
+    for i, incident in enumerate(incidents_list):
+        try:
             sender.send_email(
                 to_address=os.getenv("SEEDER_INCIDENTS_RECEIVER_EMAIL"),
                 subject=incident['title'],
                 body=incident['description']
             )
             print(f"E-mail {i + 1} enviado com sucesso.")
-    except json.JSONDecodeError as e:
-        print("Erro ao converter para JSON:", e)
-        print("Conteúdo retornado:", incidents)
-        
-        # Gerar 10 incidentes padrão como fallback
-        print("Gerando 10 incidentes padrão como fallback...")
-        incidents_list = [
-            {
-                "title": f"Erro técnico #{i+1} no sistema LIBERDADE ANIMAL",
-                "description": f"Estou enfrentando um problema técnico ao utilizar o sistema LIBERDADE ANIMAL. Quando tento acessar a funcionalidade principal, recebo uma mensagem de erro que impede o uso normal da plataforma. Já tentei atualizar a página, limpar o cache do navegador e até mesmo usar um navegador diferente, mas o problema persiste. Este erro está afetando minha produtividade e preciso de uma solução urgente para continuar meu trabalho. Por favor, ajudem a resolver este problema o mais rápido possível. Agradeço antecipadamente pela atenção e suporte."
-            } for i in range(10)
-        ]
-        
-        print("Processando 10 incidentes padrão...")
-        
-        for i, incident in enumerate(incidents_list):
-            try:
-                sender.send_email(
-                    to_address=os.getenv("SEEDER_INCIDENTS_RECEIVER_EMAIL"),
-                    subject=incident['title'],
-                    body=incident['description']
-                )
-                print(f"E-mail {i + 1} enviado com sucesso.")
-            except Exception as e:
-                print(f"Erro ao enviar e-mail {i + 1}: {e}")
-        
-        print("Processamento de incidentes padrão concluído.")
-        return
+        except Exception as e:
+            print(f"Erro ao enviar e-mail {i + 1}: {e}")
 
     print("Seeder de Incidentes concluído.")
 
