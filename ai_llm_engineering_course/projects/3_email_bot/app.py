@@ -2,6 +2,7 @@ from openai import OpenAI
 from utils.reader import EmailReader
 from utils.sender import EmailSender
 from utils.model import LLMModel
+from utils.llm_utils import LLMUtils
 from chromadb.utils import embedding_functions
 import chromadb
 import json
@@ -68,10 +69,10 @@ def main():
             
             print(f"Total de perguntas disponíveis com resposta: {len(all_questions['ids'])}")
             
-            # Busca semântica com mais resultados para ter mais opções
+            # Busca semântica com apenas 1 resultado (o mais similar)
             results = collection.query(
                 query_texts=[query_text],
-                n_results=min(5, len(all_questions['ids'])),  # Buscar mais resultados, mas não mais que o total disponível
+                n_results=1,  # Buscar apenas o resultado mais similar
                 where={"$and": [
                     {"type": {"$eq": "pergunta"}},
                     {"has_response": {"$eq": True}}
@@ -109,15 +110,23 @@ def main():
                 
             # Mostrar as perguntas encontradas com suas pontuações de similaridade
             print("\n=== PERGUNTAS SIMILARES ENCONTRADAS ===")
-            for j, (pergunta_id, pergunta_doc, pergunta_meta, distance) in enumerate(
-                zip(filtered_results["ids"], filtered_results["documents"], 
-                    filtered_results["metadatas"], filtered_results["distances"]), 1
-            ):
-                print(f"\n{j}) Pergunta: {pergunta_meta.get('subject')}")
-                print(f"   Similaridade: {distance}")
-                print(f"   ID: {pergunta_id}")
-                print(f"   Thread ID: {pergunta_meta.get('thread_id')}")
-                print(f"   Tem resposta: {pergunta_meta.get('has_response', False)}")
+            
+            # Variável para armazenar a resposta que será enviada
+            response_to_send = None
+            response_meta = None
+            
+            # Processar apenas a pergunta mais similar
+            if filtered_results["ids"]:
+                pergunta_id = filtered_results["ids"][0]
+                pergunta_doc = filtered_results["documents"][0]
+                pergunta_meta = filtered_results["metadatas"][0]
+                distance = filtered_results["distances"][0]
+                
+                print(f"\nPergunta mais similar: {pergunta_meta.get('subject')}")
+                print(f"Similaridade: {distance}")
+                print(f"ID: {pergunta_id}")
+                print(f"Thread ID: {pergunta_meta.get('thread_id')}")
+                print(f"Tem resposta: {pergunta_meta.get('has_response', False)}")
                 
                 # Se a pergunta tem uma resposta associada, buscar e mostrar
                 if pergunta_meta.get("has_response") and pergunta_meta.get("response_id"):
@@ -133,40 +142,44 @@ def main():
                         resp_doc = response_results["documents"][0]
                         resp_meta = response_results["metadatas"][0]
                         
-                        print(f"\n   RESPOSTA ASSOCIADA:")
-                        print(f"   De: {resp_meta.get('from')}")
-                        print(f"   Assunto: {resp_meta.get('subject')}")
-                        print(f"   Texto da resposta:\n{resp_doc[:200]}...")
+                        print(f"\nRESPOSTA ASSOCIADA:")
+                        print(f"De: {resp_meta.get('from')}")
+                        print(f"Assunto: {resp_meta.get('subject')}")
+                        print(f"Texto da resposta:\n{resp_doc[:200]}...")
                         
-                        # Se for a primeira pergunta (mais similar), enviar a resposta automaticamente
-                        if j == 1:
-                            print("\n=== ENVIANDO RESPOSTA AUTOMATICAMENTE ===")
-                            
-                            # Preparar o email original para resposta
-                            original_msg = {
-                                "from_": email['from'],
-                                "subject": email['subject'],
-                                "headers": {"Message-ID": email['message_id']},
-                                "thread_id": email['thread_id']
-                            }
-                            
-                            # Enviar a resposta
-                            try:
-                                result = sender.reply_email(
-                                    original_msg=original_msg,
-                                    reply_body=resp_doc
-                                )
-                                
-                                if result:
-                                    print(f"✅ Resposta enviada com sucesso para {email['from']}!")
-                                else:
-                                    print(f"❌ Falha ao enviar resposta para {email['from']}.")
-                            except Exception as e:
-                                print(f"❌ Erro ao enviar resposta: {e}")
+                        # Armazenar a resposta para envio
+                        response_to_send = resp_doc
+                        response_meta = resp_meta
                     else:
                         print(f"Resposta referenciada (ID: {response_id}) não encontrada!")
                 else:
                     print("Esta pergunta não tem resposta associada.")
+                
+                # Se encontramos uma resposta, enviar
+                if response_to_send:
+                    print("\n=== ENVIANDO RESPOSTA AUTOMATICAMENTE ===")
+                    
+                    # Preparar o email original para resposta
+                    original_msg = {
+                        "from_": email['from'],
+                        "subject": email['subject'],
+                        "headers": {"Message-ID": email['message_id']},
+                        "thread_id": email['thread_id']
+                    }
+                    
+                    # Enviar a resposta
+                    try:
+                        result = sender.reply_email(
+                            original_msg=original_msg,
+                            reply_body=response_to_send
+                        )
+                        
+                        if result:
+                            print(f"✅ Resposta enviada com sucesso para {email['from']}!")
+                        else:
+                            print(f"❌ Falha ao enviar resposta para {email['from']}.")
+                    except Exception as e:
+                        print(f"❌ Erro ao enviar resposta: {e}")
             
         except Exception as e:
             print(f"Erro ao buscar perguntas similares: {e}")

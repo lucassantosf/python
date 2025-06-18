@@ -370,5 +370,5 @@ if __name__ == "__main__":
     # Exemplo de uso: primeiro indexar os emails e depois buscar por uma pergunta
 
     main()  # Indexar todos os emails
-    debug_question_answer_pairs()  # Verificar os pares pergunta-resposta
-    search_questions("problema com login", n_results=2)  # Buscar perguntas similares
+    # debug_question_answer_pairs()  # Verificar os pares pergunta-resposta
+    # search_questions("sistema travando ao adicionar fotos", n_results=1)  # Buscar perguntas similares

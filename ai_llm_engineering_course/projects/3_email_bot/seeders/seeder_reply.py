@@ -118,64 +118,172 @@ def main():
         print(f"Assunto '{subject}': {len(email_group)} email(s)")
     print("--- Fim do agrupamento ---\n")
     
-    # Manter um registro de quais assuntos já foram respondidos
-    responded_subjects = set()
+    # Criar uma lista de emails únicos para processar (um por assunto)
+    unique_emails = [email_group[0] for email_group in emails_by_subject.values()]
     
-    # Processar cada assunto único
-    print("Processando emails por assunto único...")
-    for subject, email_group in emails_by_subject.items():
-        # Pegar apenas o primeiro email de cada grupo com o mesmo assunto
-        email = email_group[0]
+    if not unique_emails:
+        print("Nenhum email único para processar. Encerrando.")
+        return
+    
+    print(f"Processando {len(unique_emails)} emails únicos em uma única chamada ao modelo...")
+    
+    try:
+        # Gerar respostas para todos os emails em uma única chamada
+        responses_json = seeder.generate_replies_from_email_list(unique_emails)
         
-        print(f"Gerando resposta personalizada para: {email['from']} - Assunto: {email['subject']}")
-        
-        # Gerar uma resposta personalizada usando o OpenAI
-        single_email_prompt = (
-            f"Você é um assistente técnico ESPECIALISTA da plataforma web 'LIBERDADE ANIMAL'.\n"
-            f"Recebeu o seguinte problema reportado por um usuário:\n\n"
-            f"De: {email['from']}, Assunto: {email['subject']}\n"
-            f"Problema: {email['text']}\n\n"
-            f"Gere uma resposta DETALHADA, TÉCNICA e CRIATIVA com 100-150 palavras. Seja técnico mas também empático.\n\n"
-            f"DIRETRIZES PARA A RESPOSTA:\n"
-            f"- INVENTE detalhes técnicos específicos para o problema\n"
-            f"- CRIE uma solução técnica personalizada\n"
-            f"- MENCIONE ferramentas específicas como DevTools, Console de Depuração, etc.\n"
-            f"- SUGIRA configurações específicas para resolver o problema\n"
-            f"- INCLUA passos numerados e específicos para resolver o problema\n\n"
-            f"Retorne APENAS o texto da resposta, sem formatação adicional."
-        )
-        
-        single_messages = [
-            {"role": "system", "content": "Você é um especialista técnico que cria respostas detalhadas e personalizadas."},
-            {"role": "user", "content": single_email_prompt}
-        ]
-        
+        # Extrair e processar as respostas JSON
         try:
-            # Usar temperatura mais alta para respostas mais criativas
-            custom_response = seeder.llm_model.generate_completion(single_messages, temperature=0.8)
+            # Tentar extrair o JSON da resposta
+            responses = json.loads(seeder.extract_json(responses_json))
             
-            original_msg = {
-                "from_": email['from'],
-                "subject": email['subject'],
-                "headers": {"Message-ID": email['message_id']},
-                "thread_id": email['thread_id']
-            }
+            print(f"Respostas geradas com sucesso! Total: {len(responses)}")
             
-            print(f"Enviando resposta para: {email['subject']}")
-            result = sender.reply_email(
-                original_msg=original_msg,
-                reply_body=custom_response
-            )
+            # Criar um mapeamento de message_id para resposta
+            responses_by_message_id = {}
+            for response in responses:
+                message_id = response.get('message_id')
+                if message_id:
+                    responses_by_message_id[message_id] = response
             
-            if result:
-                print("Resposta enviada com sucesso!")
-                responded_subjects.add(subject)
-            else:
-                print("Tentativa de envio falhou.")
-        except Exception as e:
-            print(f"Erro ao processar email: {e}")
+            # Enviar as respostas para os emails correspondentes
+            for email in unique_emails:
+                message_id = email['message_id']
+                if message_id in responses_by_message_id:
+                    response_data = responses_by_message_id[message_id]
+                    solution = response_data.get('solution', '')
+                    
+                    original_msg = {
+                        "from_": email['from'],
+                        "subject": email['subject'],
+                        "headers": {"Message-ID": message_id},
+                        "thread_id": email['thread_id']
+                    }
+                    
+                    print(f"Enviando resposta para: {email['subject']}")
+                    result = sender.reply_email(
+                        original_msg=original_msg,
+                        reply_body=solution
+                    )
+                    
+                    if result:
+                        print(f"Resposta enviada com sucesso para: {email['from']}")
+                    else:
+                        print(f"Falha ao enviar resposta para: {email['from']}")
+                else:
+                    print(f"Aviso: Não foi encontrada resposta para o email com message_id: {message_id}")
+        
+        except json.JSONDecodeError as e:
+            print(f"Erro ao decodificar JSON: {e}")
+            print("Tentando método alternativo de extração...")
+            
+            # Usar os métodos de LLMUtils para tentar extrair o JSON
+            try:
+                # Criar uma instância temporária de LLMUtils
+                llm_utils = LLMUtils()
+                responses = llm_utils.robust_json_parse(responses_json)
+                
+                if isinstance(responses, list) and len(responses) > 0:
+                    print(f"Extração alternativa bem-sucedida! Total: {len(responses)}")
+                    
+                    # Processar as respostas extraídas
+                    for email in unique_emails:
+                        # Encontrar a resposta correspondente
+                        matching_response = None
+                        for response in responses:
+                            if response.get('message_id') == email['message_id']:
+                                matching_response = response
+                                break
+                        
+                        if matching_response:
+                            solution = matching_response.get('solution', '')
+                            
+                            original_msg = {
+                                "from_": email['from'],
+                                "subject": email['subject'],
+                                "headers": {"Message-ID": email['message_id']},
+                                "thread_id": email['thread_id']
+                            }
+                            
+                            print(f"Enviando resposta para: {email['subject']}")
+                            result = sender.reply_email(
+                                original_msg=original_msg,
+                                reply_body=solution
+                            )
+                            
+                            if result:
+                                print(f"Resposta enviada com sucesso para: {email['from']}")
+                            else:
+                                print(f"Falha ao enviar resposta para: {email['from']}")
+                        else:
+                            print(f"Aviso: Não foi encontrada resposta para o email: {email['subject']}")
+                else:
+                    raise ValueError("Não foi possível extrair respostas válidas")
+                    
+            except Exception as e2:
+                print(f"Erro na extração alternativa: {e2}")
+                print("Voltando ao método de processamento individual...")
+                
+                # Processar cada email individualmente como fallback
+                for email in unique_emails:
+                    process_single_email(seeder, email, sender)
+    
+    except Exception as e:
+        print(f"Erro ao processar emails em lote: {e}")
+        print("Voltando ao método de processamento individual...")
+        
+        # Processar cada email individualmente como fallback
+        for email in unique_emails:
+            process_single_email(seeder, email, sender)
 
     print("\nProcessamento de emails concluído!")
+
+def process_single_email(seeder, email, sender):
+    """Processa um único email como fallback"""
+    print(f"Processando individualmente: {email['from']} - Assunto: {email['subject']}")
+    
+    single_email_prompt = (
+        f"Você é um assistente técnico ESPECIALISTA da plataforma web 'LIBERDADE ANIMAL'.\n"
+        f"Recebeu o seguinte problema reportado por um usuário:\n\n"
+        f"De: {email['from']}, Assunto: {email['subject']}\n"
+        f"Problema: {email['text']}\n\n"
+        f"Gere uma resposta DETALHADA, TÉCNICA e CRIATIVA com 100-150 palavras. Seja técnico mas também empático.\n\n"
+        f"DIRETRIZES PARA A RESPOSTA:\n"
+        f"- INVENTE detalhes técnicos específicos para o problema\n"
+        f"- CRIE uma solução técnica personalizada\n"
+        f"- MENCIONE ferramentas específicas como DevTools, Console de Depuração, etc.\n"
+        f"- SUGIRA configurações específicas para resolver o problema\n"
+        f"- INCLUA passos numerados e específicos para resolver o problema\n\n"
+        f"Retorne APENAS o texto da resposta, sem formatação adicional."
+    )
+    
+    single_messages = [
+        {"role": "system", "content": "Você é um especialista técnico que cria respostas detalhadas e personalizadas."},
+        {"role": "user", "content": single_email_prompt}
+    ]
+    
+    try:
+        # Usar temperatura mais alta para respostas mais criativas
+        custom_response = seeder.llm_model.generate_completion(single_messages, temperature=0.8)
+        
+        original_msg = {
+            "from_": email['from'],
+            "subject": email['subject'],
+            "headers": {"Message-ID": email['message_id']},
+            "thread_id": email['thread_id']
+        }
+        
+        print(f"Enviando resposta para: {email['subject']}")
+        result = sender.reply_email(
+            original_msg=original_msg,
+            reply_body=custom_response
+        )
+        
+        if result:
+            print(f"Resposta individual enviada com sucesso para: {email['from']}")
+        else:
+            print(f"Falha ao enviar resposta individual para: {email['from']}")
+    except Exception as e:
+        print(f"Erro ao processar email individualmente: {e}")
 
 if __name__ == "__main__":
     main()
