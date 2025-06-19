@@ -11,8 +11,8 @@ import os
 
 load_dotenv()
 
-# Escopo para ler emails
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+# Escopo para ler e modificar emails
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.modify']
 
 # Dados da sua conta Gmail
 class EmailReader:
@@ -100,7 +100,8 @@ class EmailReader:
                     'subject': subject,
                     'text': text,
                     'thread_id': message['threadId'],
-                    'message_id': message_id  # Adicionando o Message-ID
+                    'message_id': message_id,  # Message-ID do cabeçalho
+                    'id': message['id']  # ID interno do Gmail para operações como marcar como lido
                 }
                 emails.append(email)
         return emails
@@ -126,11 +127,63 @@ class EmailReader:
                 "from": headers.get('From'),
                 "subject": headers.get('Subject'),
                 "message_id": message_id,
-                "thread_id": msg.get('threadId')
+                "thread_id": msg.get('threadId'),
+                "id": msg_id  # Adicionando o ID interno do Gmail para uso em outras operações
             }
         except Exception as e:
             print(f"Erro ao buscar e-mail por message_id: {e}")
             return None
+            
+    def mark_as_read(self, message_id=None, thread_id=None):
+        """
+        Marca um email ou thread como lido no Gmail
+        
+        Args:
+            message_id (str, optional): ID da mensagem específica a ser marcada como lida
+            thread_id (str, optional): ID da thread a ser marcada como lida
+            
+        Returns:
+            bool: True se a operação foi bem-sucedida, False caso contrário
+            
+        Note:
+            Pelo menos um dos parâmetros (message_id ou thread_id) deve ser fornecido
+        """
+        try:
+            if not message_id and not thread_id:
+                print("Erro: É necessário fornecer message_id ou thread_id")
+                return False
+                
+            # Se temos o ID da mensagem, usamos ele diretamente
+            if message_id:
+                result = self.service.users().messages().modify(
+                    userId='me',
+                    id=message_id,
+                    body={'removeLabelIds': ['UNREAD']}
+                ).execute()
+                print(f"Email marcado como lido: {result.get('id')}")
+                return True
+                
+            # Se temos apenas o thread_id, precisamos buscar todas as mensagens da thread
+            elif thread_id:
+                # Buscar todas as mensagens da thread
+                thread = self.service.users().threads().get(userId='me', id=thread_id).execute()
+                messages = thread.get('messages', [])
+                
+                # Marcar cada mensagem como lida
+                for message in messages:
+                    msg_id = message.get('id')
+                    self.service.users().messages().modify(
+                        userId='me',
+                        id=msg_id,
+                        body={'removeLabelIds': ['UNREAD']}
+                    ).execute()
+                
+                print(f"Thread inteira marcada como lida: {thread_id} ({len(messages)} mensagens)")
+                return True
+                
+        except Exception as e:
+            print(f"ERRO: Erro ao marcar email/thread como lido: {e}")
+            return False
 
 
 def main():

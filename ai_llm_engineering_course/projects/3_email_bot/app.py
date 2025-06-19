@@ -17,7 +17,7 @@ def main():
     sender = EmailSender()
     
     # Ler emails não lidos
-    emails = reader.read_emails(max_results=1, query='is:unread')
+    emails = reader.read_emails(max_results=10, query='is:unread')
     print(f"Encontrados {len(emails)} novos emails para processar.")
     
     if not emails:
@@ -50,11 +50,11 @@ def main():
     # Processar cada email
     for i, email in enumerate(emails, 1):
         print(f"\n[{i}/{len(emails)}] Processando email de {email['from']} - Assunto: {email['subject']}")
+
+        # Preparar o texto da consulta - usar apenas as primeiras 200 caracteres para evitar ruído
+        query_text = email['text'][:200] if len(email['text']) > 200 else email['text']
         
-        # Preparar o texto da consulta - usar apenas as primeiras 1000 caracteres para evitar ruído
-        query_text = email['text'][:1000] if len(email['text']) > 1000 else email['text']
-        
-        print(f"\nTexto da consulta: {query_text[:100]}...")
+        print(f"\nTexto da consulta: {query_text[:50]}...")
         
         # Busca semântica por perguntas similares
         try:
@@ -68,7 +68,7 @@ def main():
             )
             
             print(f"Total de perguntas disponíveis com resposta: {len(all_questions['ids'])}")
-            
+
             # Busca semântica com apenas 1 resultado (o mais similar)
             results = collection.query(
                 query_texts=[query_text],
@@ -107,7 +107,7 @@ def main():
                 continue
                 
             print(f"Encontradas {len(filtered_results['ids'])} perguntas com similaridade suficiente.")
-                
+
             # Mostrar as perguntas encontradas com suas pontuações de similaridade
             print("\n=== PERGUNTAS SIMILARES ENCONTRADAS ===")
             
@@ -175,11 +175,26 @@ def main():
                         )
                         
                         if result:
-                            print(f"✅ Resposta enviada com sucesso para {email['from']}!")
+                            print(f"Resposta enviada com sucesso para {email['from']}!")
+                            
+                            # Marcar o email original como lido
+                            if 'id' in email:
+                                mark_result = reader.mark_as_read(message_id=email['id'])
+                                if mark_result:
+                                    print(f"Email marcado como lido com sucesso!")
+                                else:
+                                    print(f"AVISO: Não foi possível marcar o email como lido.")
+                            else:
+                                # Fallback para thread_id se o id da mensagem não estiver disponível
+                                mark_result = reader.mark_as_read(thread_id=email['thread_id'])
+                                if mark_result:
+                                    print(f"Thread inteira marcada como lida com sucesso!")
+                                else:
+                                    print(f"AVISO: Não foi possível marcar a thread como lida.")
                         else:
-                            print(f"❌ Falha ao enviar resposta para {email['from']}.")
+                            print(f"ERRO: Falha ao enviar resposta para {email['from']}. Verifique as credenciais e permissões.")
                     except Exception as e:
-                        print(f"❌ Erro ao enviar resposta: {e}")
+                        print(f"ERRO: Erro ao enviar resposta: {e}")
             
         except Exception as e:
             print(f"Erro ao buscar perguntas similares: {e}")
@@ -212,7 +227,7 @@ def debug_collection():
         
         # Verificar se há discrepâncias
         if len(perguntas_com_resposta) != len(respostas):
-            print(f"\n⚠️ ALERTA: Há uma discrepância entre perguntas com resposta ({len(perguntas_com_resposta)}) e respostas ({len(respostas)})!")
+            print(f"\nALERTA: Há uma discrepância entre perguntas com resposta ({len(perguntas_com_resposta)}) e respostas ({len(respostas)})!")
         
         # Mostrar todas as respostas disponíveis
         print("\n=== TODAS AS RESPOSTAS DISPONÍVEIS ===")
@@ -247,7 +262,7 @@ def debug_collection():
                             print(f"Texto: {resp_doc[:150]}...")
                             break
                     else:
-                        print("\n⚠️ Resposta referenciada mas não encontrada!")
+                        print("\nAVISO: Resposta referenciada mas não encontrada!")
                         
                         # Tentar encontrar por thread_id
                         thread_id = meta.get("thread_id")
@@ -261,7 +276,7 @@ def debug_collection():
                                 print(f"\nResposta encontrada com ID alternativo:")
                                 print(f"De: {resp_meta.get('from')}")
                                 print(f"Texto: {resp_doc[:150]}...")
-                                print(f"\n⚠️ Problema detectado: A pergunta referencia '{response_id}' mas a resposta tem ID '{expected_response_id}'")
+                                print(f"\nAVISO: Problema detectado: A pergunta referencia '{response_id}' mas a resposta tem ID '{expected_response_id}'")
                                 break
                 
                 print("-" * 60)
@@ -292,7 +307,7 @@ def debug_collection():
                     if j > 0:  # Pular a própria pergunta
                         print(f"  - Similaridade com {id_}: {distance}")
                         if distance < 0.1:  # Valor muito baixo indica alta similaridade
-                            print(f"    ⚠️ ALERTA: Perguntas muito similares detectadas!")
+                            print(f"    ALERTA: Perguntas muito similares detectadas!")
         
     except Exception as e:
         print(f"Erro ao depurar coleção: {e}")
@@ -307,4 +322,4 @@ if __name__ == "__main__":
         print("Modo normal. Processando emails não lidos...")
         main()
         
-    print("\nPara depurar a coleção, execute: python app.py debug")
+    # print("\nPara depurar a coleção, execute: python app.py debug")

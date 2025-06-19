@@ -40,7 +40,17 @@ class EmailSender:
         return service
 
     def send_email(self, to_address, subject, body):
-        """Envia um email simples usando a API do Gmail"""
+        """
+        Envia um email simples usando a API do Gmail
+        
+        Args:
+            to_address (str): Endereço de email do destinatário
+            subject (str): Assunto do email
+            body (str): Corpo do email
+            
+        Returns:
+            bool: True se o email foi enviado com sucesso, False caso contrário
+        """
         message = MIMEMultipart()
         message["To"] = to_address
         message["From"] = self.email
@@ -50,16 +60,34 @@ class EmailSender:
         raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
 
         try:
-            self.service.users().messages().send(
+            response = self.service.users().messages().send(
                 userId="me",
                 body={"raw": raw_message}
             ).execute()
-            print("E-mail enviado com sucesso!")
+            
+            # Verificar se a resposta contém um ID de mensagem (indicando sucesso)
+            if response and 'id' in response:
+                print(f"E-mail enviado com sucesso! ID: {response['id']}")
+                return True
+            else:
+                print("Aviso: E-mail enviado, mas sem ID de confirmação.")
+                return True  # Ainda consideramos como sucesso se não houver erro
         except Exception as e:
             print("Erro ao enviar e-mail:", e)
+            return False
 
     def reply_email(self, original_msg, reply_body, content_type="plain"):
-        """Responde um e-mail usando a API do Gmail"""
+        """
+        Responde um e-mail usando a API do Gmail
+        
+        Args:
+            original_msg (dict): Dicionário com informações do email original
+            reply_body (str): Corpo da resposta
+            content_type (str, optional): Tipo de conteúdo (plain ou html). Defaults to "plain".
+            
+        Returns:
+            bool: True se o email foi enviado com sucesso, False caso contrário
+        """
 
         # Validação dos campos essenciais
         required_fields = ["from_", "subject", "thread_id"]
@@ -67,7 +95,7 @@ class EmailSender:
 
         if missing_fields:
             print(f"Erro: Campos ausentes no e-mail original: {', '.join(missing_fields)}")
-            return
+            return False
 
         msg = MIMEMultipart()
         msg["From"] = self.email
@@ -84,12 +112,22 @@ class EmailSender:
         raw_message = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
         try:
-            self.service.users().messages().send(
+            response = self.service.users().messages().send(
                 userId="me",
                 body={"raw": raw_message, "threadId": original_msg["thread_id"]}
             ).execute()
-            print("Resposta enviada com sucesso!")
+            
+            # Verificar se a resposta contém um ID de mensagem (indicando sucesso)
+            if response and 'id' in response:
+                print(f"Resposta enviada com sucesso! ID: {response['id']}")
+                return True
+            else:
+                print("Aviso: Resposta enviada, mas sem ID de confirmação.")
+                return True  # Ainda consideramos como sucesso se não houver erro
+                
         except HttpError as error:
             print(f"Erro na API do Gmail: {error}")
+            return False
         except Exception as e:
             print(f"Erro inesperado ao enviar resposta: {e}")
+            return False
