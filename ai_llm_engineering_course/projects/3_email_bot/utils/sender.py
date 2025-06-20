@@ -21,7 +21,7 @@ class EmailSender:
         self.service = self.authenticate_gmail()
 
     def authenticate_gmail(self):
-        """Autentica na API do Gmail"""
+        """Authenticates with the Gmail API"""
         creds = None
         if os.path.exists('token_send.json'):
             creds = Credentials.from_authorized_user_file('token_send.json', SCOPES)
@@ -41,15 +41,15 @@ class EmailSender:
 
     def send_email(self, to_address, subject, body):
         """
-        Envia um email simples usando a API do Gmail
+        Sends a simple email using the Gmail API
         
         Args:
-            to_address (str): Endereço de email do destinatário
-            subject (str): Assunto do email
-            body (str): Corpo do email
+            to_address (str): Recipient's email address
+            subject (str): Email subject
+            body (str): Email body
             
         Returns:
-            bool: True se o email foi enviado com sucesso, False caso contrário
+            bool: True if the email was sent successfully, False otherwise
         """
         message = MIMEMultipart()
         message["To"] = to_address
@@ -65,36 +65,36 @@ class EmailSender:
                 body={"raw": raw_message}
             ).execute()
             
-            # Verificar se a resposta contém um ID de mensagem (indicando sucesso)
+            # Check if the response contains a message ID (indicating success)
             if response and 'id' in response:
-                print(f"E-mail enviado com sucesso! ID: {response['id']}")
+                print(f"Email sent successfully! ID: {response['id']}")
                 return True
             else:
-                print("Aviso: E-mail enviado, mas sem ID de confirmação.")
-                return True  # Ainda consideramos como sucesso se não houver erro
+                print("Warning: Email sent, but without confirmation ID.")
+                return True  # We still consider it a success if there's no error
         except Exception as e:
-            print("Erro ao enviar e-mail:", e)
+            print("Error sending email:", e)
             return False
 
     def reply_email(self, original_msg, reply_body, content_type="plain"):
         """
-        Responde um e-mail usando a API do Gmail
+        Replies to an email using the Gmail API
         
         Args:
-            original_msg (dict): Dicionário com informações do email original
-            reply_body (str): Corpo da resposta
-            content_type (str, optional): Tipo de conteúdo (plain ou html). Defaults to "plain".
+            original_msg (dict): Dictionary with information about the original email
+            reply_body (str): Reply body
+            content_type (str, optional): Content type (plain or html). Defaults to "plain".
             
         Returns:
-            bool: True se o email foi enviado com sucesso, False caso contrário
+            bool: True if the email was sent successfully, False otherwise
         """
 
-        # Validação dos campos essenciais
+        # Validation of essential fields
         required_fields = ["from_", "subject", "thread_id"]
         missing_fields = [field for field in required_fields if not original_msg.get(field)]
 
         if missing_fields:
-            print(f"Erro: Campos ausentes no e-mail original: {', '.join(missing_fields)}")
+            print(f"Error: Missing fields in the original email: {', '.join(missing_fields)}")
             return False
 
         msg = MIMEMultipart()
@@ -117,17 +117,17 @@ class EmailSender:
                 body={"raw": raw_message, "threadId": original_msg["thread_id"]}
             ).execute()
             
-            # Verificar se a resposta contém um ID de mensagem (indicando sucesso)
+            # Check if the response contains a message ID (indicating success)
             if response and 'id' in response:
-                print(f"Resposta enviada com sucesso! ID: {response['id']}")
+                print(f"Reply sent successfully! ID: {response['id']}")
                 return True
             else:
-                print("Aviso: Resposta enviada, mas sem ID de confirmação.")
-                return True  # Ainda consideramos como sucesso se não houver erro
+                print("Warning: Reply sent, but without confirmation ID.")
+                return True  # We still consider it a success if there's no error
                 
         except HttpError as error:
-            print(f"Erro na API do Gmail: {error}")
+            print(f"Gmail API error: {error}")
             return False
         except Exception as e:
-            print(f"Erro inesperado ao enviar resposta: {e}")
+            print(f"Unexpected error sending reply: {e}")
             return False

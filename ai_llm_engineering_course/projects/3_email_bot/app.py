@@ -10,84 +10,84 @@ import os
 
 def main():
     """
-    Função principal que processa emails não lidos, busca perguntas similares na base de conhecimento,
-    encontra respostas associadas e envia como resposta ao email original.
+    Main function that processes unread emails, searches for similar questions in the knowledge base,
+    finds associated answers and sends them as a response to the original email.
     """
     reader = EmailReader()
     sender = EmailSender()
     
-    # Ler emails não lidos
+    # Read unread emails
     emails = reader.read_emails(max_results=10, query='is:unread')
-    print(f"Encontrados {len(emails)} novos emails para processar.")
+    print(f"Found {len(emails)} new emails to process.")
     
     if not emails:
-        print("Nenhum email novo para processar.")
+        print("No new emails to process.")
         return
     
-    # Configurar ChromaDB
+    # Configure ChromaDB
     default_ef = embedding_functions.DefaultEmbeddingFunction()
     
     try:
-        # Garantir que o diretório existe
+        # Ensure directory exists
         os.makedirs("./db/chroma_persist", exist_ok=True)
         chromadb_client = chromadb.PersistentClient(path="./db/chroma_persist")
         collection = chromadb_client.get_or_create_collection("email_bot", embedding_function=default_ef)
     except Exception as e:
-        print(f"Erro ao conectar com o ChromaDB: {e}")
-        print("Verifique se a base de dados foi criada executando o script indexer.py primeiro.")
+        print(f"Error connecting to ChromaDB: {e}")
+        print("Make sure the database was created by running the indexer.py script first.")
         return
     
-    # Verificar se há documentos na coleção
+    # Check if there are documents in the collection
     try:
         collection_info = collection.get(limit=1)
         if not collection_info["ids"]:
-            print("A coleção está vazia. Execute o script indexer.py para indexar emails primeiro.")
+            print("The collection is empty. Run the indexer.py script to index emails first.")
             return
     except Exception as e:
-        print(f"Erro ao verificar a coleção: {e}")
+        print(f"Error checking collection: {e}")
         return
     
-    # Processar cada email
+    # Process each email
     for i, email in enumerate(emails, 1):
-        print(f"\n[{i}/{len(emails)}] Processando email de {email['from']} - Assunto: {email['subject']}")
+        print(f"\n[{i}/{len(emails)}] Processing email from {email['from']} - Subject: {email['subject']}")
 
-        # Preparar o texto da consulta - usar apenas as primeiras 200 caracteres para evitar ruído
+        # Prepare query text - use only the first 200 characters to avoid noise
         query_text = email['text'][:200] if len(email['text']) > 200 else email['text']
         
-        print(f"\nTexto da consulta: {query_text[:50]}...")
+        print(f"\nQuery text: {query_text[:50]}...")
         
-        # Busca semântica por perguntas similares
+        # Semantic search for similar questions
         try:
-            # Primeiro, buscar todas as perguntas disponíveis para análise
+            # First, get all available questions for analysis
             all_questions = collection.get(
                 where={"$and": [
-                    {"type": {"$eq": "pergunta"}},
+                    {"type": {"$eq": "question"}},
                     {"has_response": {"$eq": True}}
                 ]},
                 include=["metadatas"]
             )
             
-            print(f"Total de perguntas disponíveis com resposta: {len(all_questions['ids'])}")
+            print(f"Total available questions with answers: {len(all_questions['ids'])}")
 
-            # Busca semântica com apenas 1 resultado (o mais similar)
+            # Semantic search with only 1 result (the most similar)
             results = collection.query(
                 query_texts=[query_text],
-                n_results=1,  # Buscar apenas o resultado mais similar
+                n_results=1,  # Get only the most similar result
                 where={"$and": [
-                    {"type": {"$eq": "pergunta"}},
+                    {"type": {"$eq": "question"}},
                     {"has_response": {"$eq": True}}
-                ]}  # Garantir que só buscamos perguntas com resposta
+                ]}  # Ensure we only get questions with answers
             )
             
             if not results["ids"] or len(results["ids"][0]) == 0:
-                print("Nenhuma pergunta similar encontrada na base de conhecimento.")
+                print("No similar questions found in the knowledge base.")
                 continue
                 
-            # Definir um limiar de similaridade (quanto menor o valor, mais similar)
-            # ChromaDB usa distância, então valores menores são melhores
-            similarity_threshold = 1.5  # Ajuste este valor conforme necessário
+            # Define a similarity threshold (lower value means more similar)
+            # ChromaDB uses distance, so lower values are better
+            similarity_threshold = 1.5  # Adjust this value as needed
             
-            # Filtrar resultados por similaridade
+            # Filter results by similarity
             filtered_results = {
                 "ids": [],
                 "documents": [],
@@ -103,36 +103,36 @@ def main():
                     filtered_results["distances"].append(distance)
             
             if not filtered_results["ids"]:
-                print(f"Nenhuma pergunta com similaridade suficiente encontrada (limiar: {similarity_threshold}).")
+                print(f"No questions with sufficient similarity found (threshold: {similarity_threshold}).")
                 continue
                 
-            print(f"Encontradas {len(filtered_results['ids'])} perguntas com similaridade suficiente.")
+            print(f"Found {len(filtered_results['ids'])} questions with sufficient similarity.")
 
-            # Mostrar as perguntas encontradas com suas pontuações de similaridade
-            print("\n=== PERGUNTAS SIMILARES ENCONTRADAS ===")
+            # Show found questions with their similarity scores
+            print("\n=== SIMILAR QUESTIONS FOUND ===")
             
-            # Variável para armazenar a resposta que será enviada
+            # Variable to store the response to be sent
             response_to_send = None
             response_meta = None
             
-            # Processar apenas a pergunta mais similar
+            # Process only the most similar question
             if filtered_results["ids"]:
-                pergunta_id = filtered_results["ids"][0]
-                pergunta_doc = filtered_results["documents"][0]
-                pergunta_meta = filtered_results["metadatas"][0]
+                question_id = filtered_results["ids"][0]
+                question_doc = filtered_results["documents"][0]
+                question_meta = filtered_results["metadatas"][0]
                 distance = filtered_results["distances"][0]
                 
-                print(f"\nPergunta mais similar: {pergunta_meta.get('subject')}")
-                print(f"Similaridade: {distance}")
-                print(f"ID: {pergunta_id}")
-                print(f"Thread ID: {pergunta_meta.get('thread_id')}")
-                print(f"Tem resposta: {pergunta_meta.get('has_response', False)}")
+                print(f"\nMost similar question: {question_meta.get('subject')}")
+                print(f"Similarity: {distance}")
+                print(f"ID: {question_id}")
+                print(f"Thread ID: {question_meta.get('thread_id')}")
+                print(f"Has answer: {question_meta.get('has_response', False)}")
                 
-                # Se a pergunta tem uma resposta associada, buscar e mostrar
-                if pergunta_meta.get("has_response") and pergunta_meta.get("response_id"):
-                    response_id = pergunta_meta.get("response_id")
+                # If the question has an associated answer, retrieve and show it
+                if question_meta.get("has_response") and question_meta.get("response_id"):
+                    response_id = question_meta.get("response_id")
                     
-                    # Buscar a resposta pelo ID
+                    # Get the answer by ID
                     response_results = collection.get(
                         ids=[response_id],
                         include=["documents", "metadatas"]
@@ -142,24 +142,24 @@ def main():
                         resp_doc = response_results["documents"][0]
                         resp_meta = response_results["metadatas"][0]
                         
-                        print(f"\nRESPOSTA ASSOCIADA:")
-                        print(f"De: {resp_meta.get('from')}")
-                        print(f"Assunto: {resp_meta.get('subject')}")
-                        print(f"Texto da resposta:\n{resp_doc[:200]}...")
+                        print(f"\nASSOCIATED ANSWER:")
+                        print(f"From: {resp_meta.get('from')}")
+                        print(f"Subject: {resp_meta.get('subject')}")
+                        print(f"Answer text:\n{resp_doc[:200]}...")
                         
-                        # Armazenar a resposta para envio
+                        # Store the response for sending
                         response_to_send = resp_doc
                         response_meta = resp_meta
                     else:
-                        print(f"Resposta referenciada (ID: {response_id}) não encontrada!")
+                        print(f"Referenced answer (ID: {response_id}) not found!")
                 else:
-                    print("Esta pergunta não tem resposta associada.")
+                    print("This question has no associated answer.")
                 
-                # Se encontramos uma resposta, enviar
+                # If we found a response, send it
                 if response_to_send:
-                    print("\n=== ENVIANDO RESPOSTA AUTOMATICAMENTE ===")
+                    print("\n=== SENDING RESPONSE AUTOMATICALLY ===")
                     
-                    # Preparar o email original para resposta
+                    # Prepare the original email for response
                     original_msg = {
                         "from_": email['from'],
                         "subject": email['subject'],
@@ -167,7 +167,7 @@ def main():
                         "thread_id": email['thread_id']
                     }
                     
-                    # Enviar a resposta
+                    # Send the response
                     try:
                         result = sender.reply_email(
                             original_msg=original_msg,
@@ -175,151 +175,151 @@ def main():
                         )
                         
                         if result:
-                            print(f"Resposta enviada com sucesso para {email['from']}!")
+                            print(f"Response successfully sent to {email['from']}!")
                             
-                            # Marcar o email original como lido
+                            # Mark the original email as read
                             if 'id' in email:
                                 mark_result = reader.mark_as_read(message_id=email['id'])
                                 if mark_result:
-                                    print(f"Email marcado como lido com sucesso!")
+                                    print(f"Email successfully marked as read!")
                                 else:
-                                    print(f"AVISO: Não foi possível marcar o email como lido.")
+                                    print(f"WARNING: Could not mark the email as read.")
                             else:
-                                # Fallback para thread_id se o id da mensagem não estiver disponível
+                                # Fallback to thread_id if message id is not available
                                 mark_result = reader.mark_as_read(thread_id=email['thread_id'])
                                 if mark_result:
-                                    print(f"Thread inteira marcada como lida com sucesso!")
+                                    print(f"Entire thread successfully marked as read!")
                                 else:
-                                    print(f"AVISO: Não foi possível marcar a thread como lida.")
+                                    print(f"WARNING: Could not mark the thread as read.")
                         else:
-                            print(f"ERRO: Falha ao enviar resposta para {email['from']}. Verifique as credenciais e permissões.")
+                            print(f"ERROR: Failed to send response to {email['from']}. Check credentials and permissions.")
                     except Exception as e:
-                        print(f"ERRO: Erro ao enviar resposta: {e}")
+                        print(f"ERROR: Error sending response: {e}")
             
         except Exception as e:
-            print(f"Erro ao buscar perguntas similares: {e}")
+            print(f"Error searching for similar questions: {e}")
     
-    print("\nProcessamento de emails concluído!")
+    print("\nEmail processing completed!")
 
 def debug_collection():
     """
-    Função para depurar a coleção do ChromaDB, mostrando informações sobre os documentos armazenados.
+    Function to debug the ChromaDB collection, showing information about stored documents.
     """
     try:
-        # Configurar ChromaDB
+        # Configure ChromaDB
         default_ef = embedding_functions.DefaultEmbeddingFunction()
         chromadb_client = chromadb.PersistentClient(path="./db/chroma_persist")
         collection = chromadb_client.get_or_create_collection("email_bot", embedding_function=default_ef)
         
-        # Buscar todos os documentos
+        # Get all documents
         results = collection.get(include=["documents", "metadatas"])
         
-        # Contar perguntas e respostas
-        perguntas = [meta for meta in results["metadatas"] if meta.get("type") == "pergunta"]
-        respostas = [meta for meta in results["metadatas"] if meta.get("type") == "resposta"]
-        perguntas_com_resposta = [p for p in perguntas if p.get("has_response") == True]
+        # Count questions and answers
+        questions = [meta for meta in results["metadatas"] if meta.get("type") == "question"]
+        answers = [meta for meta in results["metadatas"] if meta.get("type") == "answer"]
+        questions_with_answers = [p for p in questions if p.get("has_response") == True]
         
-        print(f"\n=== RESUMO DA COLEÇÃO ===")
-        print(f"Total de documentos: {len(results['ids'])}")
-        print(f"Perguntas: {len(perguntas)}")
-        print(f"Respostas: {len(respostas)}")
-        print(f"Perguntas com resposta: {len(perguntas_com_resposta)}")
+        print(f"\n=== COLLECTION SUMMARY ===")
+        print(f"Total documents: {len(results['ids'])}")
+        print(f"Questions: {len(questions)}")
+        print(f"Answers: {len(answers)}")
+        print(f"Questions with answers: {len(questions_with_answers)}")
         
-        # Verificar se há discrepâncias
-        if len(perguntas_com_resposta) != len(respostas):
-            print(f"\nALERTA: Há uma discrepância entre perguntas com resposta ({len(perguntas_com_resposta)}) e respostas ({len(respostas)})!")
+        # Check for discrepancies
+        if len(questions_with_answers) != len(answers):
+            print(f"\nALERT: There is a discrepancy between questions with answers ({len(questions_with_answers)}) and answers ({len(answers)})!")
         
-        # Mostrar todas as respostas disponíveis
-        print("\n=== TODAS AS RESPOSTAS DISPONÍVEIS ===")
+        # Show all available answers
+        print("\n=== ALL AVAILABLE ANSWERS ===")
         for i, meta in enumerate(results["metadatas"]):
-            if meta.get("type") == "resposta":
+            if meta.get("type") == "answer":
                 print(f"\n{i+1}) ID: {results['ids'][i]}")
-                print(f"   De: {meta.get('from', 'Desconhecido')}")
-                print(f"   Assunto: {meta.get('subject', 'Sem assunto')}")
-                print(f"   Thread ID: {meta.get('thread_id', 'Desconhecido')}")
-                print(f"   Em resposta a: {meta.get('in_reply_to', 'Desconhecido')}")
-                print(f"   Texto: {results['documents'][i][:100]}...")
+                print(f"   From: {meta.get('from', 'Unknown')}")
+                print(f"   Subject: {meta.get('subject', 'No subject')}")
+                print(f"   Thread ID: {meta.get('thread_id', 'Unknown')}")
+                print(f"   In reply to: {meta.get('in_reply_to', 'Unknown')}")
+                print(f"   Text: {results['documents'][i][:100]}...")
         
-        # Mostrar todos os pares pergunta-resposta
-        print("\n=== TODOS OS PARES PERGUNTA-RESPOSTA ===")
+        # Show all question-answer pairs
+        print("\n=== ALL QUESTION-ANSWER PAIRS ===")
         for i, meta in enumerate(results["metadatas"]):
-            if meta.get("type") == "pergunta" and meta.get("has_response") == True:
-                print(f"\nPergunta: {meta.get('subject')}")
+            if meta.get("type") == "question" and meta.get("has_response") == True:
+                print(f"\nQuestion: {meta.get('subject')}")
                 print(f"ID: {results['ids'][i]}")
                 print(f"Thread ID: {meta.get('thread_id')}")
                 print(f"Response ID: {meta.get('response_id')}")
-                print(f"Texto: {results['documents'][i][:100]}...")
+                print(f"Text: {results['documents'][i][:100]}...")
                 
-                # Buscar a resposta
+                # Find the answer
                 response_id = meta.get("response_id")
                 if response_id:
                     for j, id_ in enumerate(results["ids"]):
                         if id_ == response_id:
                             resp_meta = results["metadatas"][j]
                             resp_doc = results["documents"][j]
-                            print(f"\nResposta correspondente:")
-                            print(f"De: {resp_meta.get('from')}")
-                            print(f"Texto: {resp_doc[:150]}...")
+                            print(f"\nCorresponding answer:")
+                            print(f"From: {resp_meta.get('from')}")
+                            print(f"Text: {resp_doc[:150]}...")
                             break
                     else:
-                        print("\nAVISO: Resposta referenciada mas não encontrada!")
+                        print("\nWARNING: Referenced answer not found!")
                         
-                        # Tentar encontrar por thread_id
+                        # Try to find by thread_id
                         thread_id = meta.get("thread_id")
-                        expected_response_id = f"{thread_id}-resposta"
-                        print(f"Procurando por ID alternativo: {expected_response_id}")
+                        expected_response_id = f"{thread_id}-answer"
+                        print(f"Looking for alternative ID: {expected_response_id}")
                         
                         for j, id_ in enumerate(results["ids"]):
                             if id_ == expected_response_id:
                                 resp_meta = results["metadatas"][j]
                                 resp_doc = results["documents"][j]
-                                print(f"\nResposta encontrada com ID alternativo:")
-                                print(f"De: {resp_meta.get('from')}")
-                                print(f"Texto: {resp_doc[:150]}...")
-                                print(f"\nAVISO: Problema detectado: A pergunta referencia '{response_id}' mas a resposta tem ID '{expected_response_id}'")
+                                print(f"\nAnswer found with alternative ID:")
+                                print(f"From: {resp_meta.get('from')}")
+                                print(f"Text: {resp_doc[:150]}...")
+                                print(f"\nWARNING: Problem detected: The question references '{response_id}' but the answer has ID '{expected_response_id}'")
                                 break
                 
                 print("-" * 60)
         
-        # Mostrar estatísticas de similaridade entre perguntas
-        if len(perguntas) > 1:
-            print("\n=== TESTE DE SIMILARIDADE ENTRE PERGUNTAS ===")
-            print("Testando similaridade entre as perguntas para verificar se há duplicatas semânticas...")
+        # Show similarity statistics between questions
+        if len(questions) > 1:
+            print("\n=== QUESTION SIMILARITY TEST ===")
+            print("Testing similarity between questions to check for semantic duplicates...")
             
-            # Pegar apenas os textos das perguntas
-            pergunta_texts = []
-            pergunta_ids = []
+            # Get only the question texts
+            question_texts = []
+            question_ids = []
             for i, meta in enumerate(results["metadatas"]):
-                if meta.get("type") == "pergunta":
-                    pergunta_texts.append(results["documents"][i])
-                    pergunta_ids.append(results["ids"][i])
+                if meta.get("type") == "question":
+                    question_texts.append(results["documents"][i])
+                    question_ids.append(results["ids"][i])
             
-            # Testar similaridade entre cada par de perguntas
-            for i in range(len(pergunta_texts)):
+            # Test similarity between each pair of questions
+            for i in range(len(question_texts)):
                 query_results = collection.query(
-                    query_texts=[pergunta_texts[i]],
-                    n_results=len(pergunta_texts),
-                    where={"type": {"$eq": "pergunta"}}
+                    query_texts=[question_texts[i]],
+                    n_results=len(question_texts),
+                    where={"type": {"$eq": "question"}}
                 )
                 
-                print(f"\nSimilaridade para pergunta {i+1} (ID: {pergunta_ids[i]}):")
+                print(f"\nSimilarity for question {i+1} (ID: {question_ids[i]}):")
                 for j, (id_, distance) in enumerate(zip(query_results["ids"][0], query_results["distances"][0])):
-                    if j > 0:  # Pular a própria pergunta
-                        print(f"  - Similaridade com {id_}: {distance}")
-                        if distance < 0.1:  # Valor muito baixo indica alta similaridade
-                            print(f"    ALERTA: Perguntas muito similares detectadas!")
+                    if j > 0:  # Skip the question itself
+                        print(f"  - Similarity with {id_}: {distance}")
+                        if distance < 0.1:  # Very low value indicates high similarity
+                            print(f"    ALERT: Very similar questions detected!")
         
     except Exception as e:
-        print(f"Erro ao depurar coleção: {e}")
+        print(f"Error debugging collection: {e}")
 
 if __name__ == "__main__":
     import sys
     
     if len(sys.argv) > 1 and sys.argv[1] == "debug":
-        print("Modo de depuração ativado. Mostrando informações da coleção...")
+        print("Debug mode activated. Showing collection information...")
         debug_collection()
     else:
-        print("Modo normal. Processando emails não lidos...")
+        print("Normal mode. Processing unread emails...")
         main()
         
-    # print("\nPara depurar a coleção, execute: python app.py debug")
+    # print("\nTo debug the collection, run: python app.py debug")

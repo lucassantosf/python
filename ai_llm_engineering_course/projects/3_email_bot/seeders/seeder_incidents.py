@@ -1,10 +1,10 @@
-from utils.model import LLMModel                # Importando o modelo LLM
-from utils.sender_smtp import EmailSender       # Importando EmailSender para enviar e-mails via smpt
+from utils.model import LLMModel                # Importing the LLM model
+from utils.sender_smtp import EmailSender       # Importing EmailSender to send emails via smtp
 from dotenv import load_dotenv
-from utils.llm_utils import LLMUtils            # Importando utilitários para manipulação de LLM
+from utils.llm_utils import LLMUtils            # Importing utilities for LLM manipulation
 import json
 import os
-import re                                       # Importando módulo de expressões regulares
+import re                                       # Importing regular expressions module
 load_dotenv()
 
 class IncidentSeeder(LLMUtils):
@@ -13,53 +13,53 @@ class IncidentSeeder(LLMUtils):
 
     def generate_incidents(self):
         prompt = (
-            "Gere uma lista com EXATAMENTE 10 incidentes técnicos DETALHADOS e REALISTAS relatados por usuários do nosso sistema web de gerenciamento de cachorros e pedigrees 'LIBERDADE ANIMAL'.\n\n"
-            "IMPORTANTE: Sua resposta DEVE conter EXATAMENTE 10 incidentes, nem mais nem menos.\n\n"
-            "DIRETRIZES PARA OS INCIDENTES:\n"
-            "- Cada incidente deve ser ÚNICO e ESPECÍFICO\n"
-            "- Inclua DETALHES TÉCNICOS como navegadores, versões, dispositivos específicos\n"
-            "- Mencione FUNCIONALIDADES ESPECÍFICAS do sistema (cadastro de pedigree, upload de fotos, geração de relatórios, etc.)\n"
-            "- Inclua PASSOS que o usuário tentou para resolver o problema\n"
-            "- Descreva COMPORTAMENTOS ESPECÍFICOS do sistema (mensagens de erro exatas, comportamentos inesperados)\n"
-            "- Use TERMINOLOGIA TÉCNICA apropriada\n"
-            "- Inclua IMPACTO no trabalho do usuário\n\n"
+            "Generate a list with EXACTLY 10 DETAILED and REALISTIC technical incidents reported by users of our 'ANIMAL FREEDOM' dog and pedigree management web system.\n\n"
+            "IMPORTANT: Your response MUST contain EXACTLY 10 incidents, no more, no less.\n\n"
+            "GUIDELINES FOR INCIDENTS:\n"
+            "- Each incident must be UNIQUE and SPECIFIC\n"
+            "- Include TECHNICAL DETAILS such as browsers, versions, specific devices\n"
+            "- Mention SPECIFIC FUNCTIONALITIES of the system (pedigree registration, photo upload, report generation, etc.)\n"
+            "- Include STEPS that the user tried to solve the problem\n"
+            "- Describe SPECIFIC BEHAVIORS of the system (exact error messages, unexpected behaviors)\n"
+            "- Use appropriate TECHNICAL TERMINOLOGY\n"
+            "- Include IMPACT on the user's work\n\n"
             
-            "Cada incidente deve conter APENAS:\n"
-            "- Um título ESPECÍFICO, TÉCNICO e DETALHADO no campo 'title'\n"
-            "- Uma descrição em primeira pessoa no campo 'description', com EXATAMENTE 200 palavras, rica em detalhes técnicos\n\n"
+            "Each incident should contain ONLY:\n"
+            "- A SPECIFIC, TECHNICAL, and DETAILED title in the 'title' field\n"
+            "- A first-person description in the 'description' field, with EXACTLY 200 words, rich in technical details\n\n"
             
-            "EXEMPLOS DE TÍTULOS BONS:\n"
-            "- 'Erro 404 ao tentar acessar relatórios de pedigree em dispositivos iOS'\n"
-            "- 'Falha na sincronização de dados do cachorro com a pedigree em diferentes dispositivos'\n"
-            "- 'Incompatibilidade do sistema com navegador Firefox 98.2 ao fazer upload de fotos'\n\n"
+            "EXAMPLES OF GOOD TITLES:\n"
+            "- '404 Error when trying to access pedigree reports on iOS devices'\n"
+            "- 'Failure in synchronizing dog data with pedigree across different devices'\n"
+            "- 'System incompatibility with Firefox 98.2 browser when uploading photos'\n\n"
             
-            "REGRAS CRÍTICAS DE FORMATAÇÃO JSON:\n"
-            "1. Use APENAS aspas duplas (\") para chaves e valores, NUNCA aspas simples (')\n"
-            "2. Cada objeto DEVE terminar com vírgula (,) exceto o último\n"
-            "3. NUNCA use ponto-e-vírgula (;) em nenhum lugar do JSON\n"
-            "4. Não inclua caracteres especiais ou não-ASCII no JSON\n"
-            "5. Certifique-se de que cada chave e valor estão corretamente entre aspas duplas\n"
-            "6. Não use quebras de linha dentro dos valores de texto\n\n"
+            "CRITICAL JSON FORMATTING RULES:\n"
+            "1. Use ONLY double quotes (\") for keys and values, NEVER single quotes (')\n"
+            "2. Each object MUST end with a comma (,) except the last one\n"
+            "3. NEVER use semicolons (;) anywhere in the JSON\n"
+            "4. Do not include special or non-ASCII characters in the JSON\n"
+            "5. Make sure each key and value are correctly enclosed in double quotes\n"
+            "6. Do not use line breaks within text values\n\n"
             
-            "A resposta deve ser ESTRITAMENTE um array JSON puro. Não inclua nenhuma explicação, título, texto fora do JSON, markdown ou quebras de linha antes ou depois.\n"
-            "Exemplo de resposta esperada:\n"
+            "The response must be STRICTLY a pure JSON array. Do not include any explanation, title, text outside the JSON, markdown, or line breaks before or after.\n"
+            "Example of expected response:\n"
             "[\n"
             "  {\n"
-            '    "title": "Erro ao salvar novo cachorro",\n'
-            '    "description": "Tentei cadastrar um novo cachorro e apareceu uma mensagem de erro..."\n'
+            '    "title": "Error saving new dog",\n'
+            '    "description": "I tried to register a new dog and an error message appeared..."\n'
             "  },\n"
             "  {\n"
-            '    "title": "Falha ao gerar relatório de pedigree",\n'
-            '    "description": "Ao tentar gerar o relatório de pedigree do meu cachorro..."\n'
+            '    "title": "Failed to generate pedigree report",\n'
+            '    "description": "When trying to generate the pedigree report for my dog..."\n'
             "  },\n"
-            "  ... (mais 8 objetos semelhantes) ...\n"
+            "  ... (8 more similar objects) ...\n"
             "]"
         ) 
 
         messages = [
             {
                 "role": "system",
-                "content": "Você é um ESPECIALISTA em criar EXATAMENTE 10 simulações realistas de problemas técnicos em formato JSON. NUNCA use formatação markdown. SEMPRE retorne APENAS um array JSON válido, começando com '[' e terminando com ']'. Cada objeto no array deve ter exatamente duas propriedades: 'title' e 'description'. Não inclua nenhum texto fora do JSON. Não use cabeçalhos, negrito, itálico ou qualquer outra formatação. Apenas JSON puro."
+                "content": "You are an EXPERT in creating EXACTLY 10 realistic simulations of technical problems in JSON format. NEVER use markdown formatting. ALWAYS return ONLY a valid JSON array, starting with '[' and ending with ']'. Each object in the array must have exactly two properties: 'title' and 'description'. Do not include any text outside the JSON. Do not use headers, bold, italic, or any other formatting. Just pure JSON."
             },
             {
                 "role": "user",
@@ -69,180 +69,180 @@ class IncidentSeeder(LLMUtils):
 
         response = self.llm_model.generate_completion(messages)
         
-        # Imprimir os primeiros 200 caracteres da resposta para diagnóstico
-        print(f"Primeiros 200 caracteres da resposta: {response[:200]}")
+        # Print the first 200 characters of the response for diagnosis
+        print(f"First 200 characters of the response: {response[:200]}")
         
-        # Abordagem direta: extrair apenas o que parece ser JSON
+        # Direct approach: extract only what appears to be JSON
         json_start = response.find("[")
         json_end = response.rfind("]") + 1
         
         if json_start >= 0 and json_end > json_start:
-            # Extrair o que parece ser JSON
+            # Extract what appears to be JSON
             json_text = response[json_start:json_end]
-            print(f"JSON extraído (primeiros 100 caracteres): {json_text[:100]}...")
+            print(f"Extracted JSON (first 100 characters): {json_text[:100]}...")
             
-            # Tentar corrigir problemas comuns
+            # Try to fix common problems
             json_text = json_text.replace(";", ",")
             json_text = json_text.replace("'", '"')
             
-            # Abordagem extrema: extrair manualmente cada objeto e reconstruir o JSON
+            # Extreme approach: manually extract each object and rebuild the JSON
             try:
-                print("Tentando extração manual de objetos...")
-                # Extrair todos os objetos que começam com { e terminam com }
+                print("Attempting manual object extraction...")
+                # Extract all objects that start with { and end with }
                 objects = re.findall(r'{[^{}]*"title"[^{}]*"description"[^{}]*}', json_text, re.DOTALL)
                 
                 if objects:
-                    print(f"Encontrados {len(objects)} objetos potenciais.")
+                    print(f"Found {len(objects)} potential objects.")
                     valid_objects = []
                     
                     for i, obj_text in enumerate(objects):
-                        # Limpar cada objeto individualmente
+                        # Clean each object individually
                         clean_obj = obj_text.replace(";", ",").replace("'", '"')
                         
-                        # Garantir que todas as chaves estão entre aspas duplas
+                        # Ensure all keys are in double quotes
                         clean_obj = re.sub(r'([{,]\s*)([a-zA-Z0-9_]+)(\s*:)', r'\1"\2"\3', clean_obj)
                         
-                        # Remover vírgulas extras antes de fechar chaves
+                        # Remove extra commas before closing braces
                         clean_obj = re.sub(r',\s*}', '}', clean_obj)
                         
                         try:
-                            # Tentar analisar o objeto
+                            # Try to parse the object
                             obj = json.loads(clean_obj)
                             
-                            # Verificar se tem os campos necessários
+                            # Check if it has the necessary fields
                             if "title" in obj and "description" in obj:
                                 valid_objects.append(obj)
-                                print(f"Objeto {i+1} válido: {obj['title'][:30]}...")
+                                print(f"Object {i+1} valid: {obj['title'][:30]}...")
                         except json.JSONDecodeError as e:
-                            print(f"Objeto {i+1} inválido: {e}")
+                            print(f"Object {i+1} invalid: {e}")
                     
                     if valid_objects:
-                        print(f"Extração manual bem-sucedida! {len(valid_objects)} objetos válidos.")
+                        print(f"Manual extraction successful! {len(valid_objects)} valid objects.")
                         return json.dumps(valid_objects)
             except Exception as e:
-                print(f"Erro na extração manual: {e}")
+                print(f"Error in manual extraction: {e}")
             
-            # Se a extração manual falhar, tentar analisar o JSON corrigido
+            # If manual extraction fails, try to parse the corrected JSON
             try:
                 incidents = json.loads(json_text)
-                print(f"JSON analisado com sucesso! Encontrados {len(incidents)} incidentes.")
+                print(f"JSON parsed successfully! Found {len(incidents)} incidents.")
                 clean_response = json.dumps(incidents)
                 return clean_response
             except json.JSONDecodeError as e:
-                print(f"Erro ao analisar JSON extraído: {e}")
+                print(f"Error parsing extracted JSON: {e}")
                 
-                # Tentar corrigir o erro específico
+                # Try to fix the specific error
                 if "Expecting ',' delimiter" in str(e):
                     error_match = re.search(r'line (\d+) column (\d+)', str(e))
                     if error_match:
                         error_line = int(error_match.group(1))
                         error_col = int(error_match.group(2))
                         
-                        print(f"Tentando corrigir erro específico na linha {error_line}, coluna {error_col}...")
+                        print(f"Trying to fix specific error on line {error_line}, column {error_col}...")
                         
-                        # Dividir o texto em linhas
+                        # Split the text into lines
                         lines = json_text.split('\n')
                         
-                        # Verificar se a linha de erro está dentro dos limites
+                        # Check if the error line is within bounds
                         if 0 < error_line <= len(lines):
-                            # Ajustar para índice baseado em zero
+                            # Adjust for zero-based index
                             line_idx = error_line - 1
                             problematic_line = lines[line_idx]
                             
-                            print(f"Linha problemática: {problematic_line}")
+                            print(f"Problematic line: {problematic_line}")
                             
-                            # Inserir uma vírgula na posição do erro
+                            # Insert a comma at the error position
                             if error_col <= len(problematic_line):
                                 fixed_line = problematic_line[:error_col] + ',' + problematic_line[error_col:]
                                 lines[line_idx] = fixed_line
-                                print(f"Linha corrigida: {fixed_line}")
+                                print(f"Fixed line: {fixed_line}")
                                 
-                                # Reconstruir o JSON
+                                # Rebuild the JSON
                                 fixed_json = '\n'.join(lines)
                                 
                                 try:
                                     incidents = json.loads(fixed_json)
-                                    print(f"JSON corrigido com sucesso! Encontrados {len(incidents)} incidentes.")
+                                    print(f"JSON fixed successfully! Found {len(incidents)} incidents.")
                                     return json.dumps(incidents)
                                 except json.JSONDecodeError as e2:
-                                    print(f"Ainda há erro após correção específica: {e2}")
-                # Continuar com outras abordagens
+                                    print(f"Still error after specific correction: {e2}")
+                # Continue with other approaches
         
-        # Se a abordagem direta falhar, tentar métodos mais robustos
+        # If the direct approach fails, try more robust methods
         try:
-            # Tentar usar o método robusto de análise JSON
+            # Try to use the robust JSON parsing method
             incidents = self.robust_json_parse(response)
-            print(f"JSON processado com sucesso! Encontrados {len(incidents)} incidentes.")
+            print(f"JSON processed successfully! Found {len(incidents)} incidents.")
             clean_response = json.dumps(incidents)
             return clean_response
         except Exception as e:
-            print(f"Erro na análise robusta: {e}")
+            print(f"Error in robust analysis: {e}")
             
-            # Tentar extrair e limpar o JSON manualmente
+            # Try to extract and clean the JSON manually
             try:
                 clean_response = self.extract_json_from_response(response)
                 clean_response = self.clean_json_string(clean_response)
                 
-                # Verificar se o JSON é válido
+                # Check if the JSON is valid
                 if self.is_valid_json(clean_response):
                     incidents = json.loads(clean_response)
-                    print(f"JSON extraído e limpo com sucesso! Encontrados {len(incidents)} incidentes.")
+                    print(f"JSON extracted and cleaned successfully! Found {len(incidents)} incidents.")
                 else:
-                    # Tentar uma limpeza mais agressiva
+                    # Try more aggressive cleaning
                     clean_response = clean_response.replace(";", ",").replace("'", '"')
                     if self.is_valid_json(clean_response):
                         incidents = json.loads(clean_response)
-                        print(f"JSON limpo agressivamente com sucesso! Encontrados {len(incidents)} incidentes.")
+                        print(f"JSON aggressively cleaned successfully! Found {len(incidents)} incidents.")
                     else:
-                        # Tentar o método de emergência
+                        # Try the emergency method
                         try:
                             incidents = self.emergency_json_fix(clean_response)
                             if incidents:
                                 clean_response = json.dumps(incidents)
-                                print(f"Extração de emergência bem-sucedida! Encontrados {len(incidents)} incidentes.")
+                                print(f"Emergency extraction successful! Found {len(incidents)} incidents.")
                             else:
-                                # Última tentativa: construção manual de JSON
-                                print("Tentando construção manual de JSON...")
+                                # Last attempt: manual JSON construction
+                                print("Attempting manual JSON construction...")
                                 incidents = self.manual_json_construction(response)
                                 if incidents:
                                     clean_response = json.dumps(incidents)
-                                    print(f"Construção manual bem-sucedida! Encontrados {len(incidents)} incidentes.")
+                                    print(f"Manual construction successful! Found {len(incidents)} incidents.")
                                     return clean_response
                                 else:
-                                    raise ValueError("Método de emergência falhou")
+                                    raise ValueError("Emergency method failed")
                         except Exception as ex:
-                            print(f"Todas as tentativas de extração falharam: {ex}")
-                            # Retornar um array vazio para indicar falha
+                            print(f"All extraction attempts failed: {ex}")
+                            # Return an empty array to indicate failure
                             return "[]"
             except Exception as e:
-                print(f"Erro ao extrair JSON: {e}")
+                print(f"Error extracting JSON: {e}")
                 return "[]"
         
-        # Se chegamos aqui, temos um JSON válido em clean_response
+        # If we got here, we have a valid JSON in clean_response
         try:
             incidents = json.loads(clean_response)
-            # Garantir que temos exatamente 10 incidentes
+            # Ensure we have exactly 10 incidents
             if len(incidents) > 10:
-                print(f"O modelo gerou {len(incidents)} incidentes. Limitando para 10...")
+                print(f"The model generated {len(incidents)} incidents. Limiting to 10...")
                 incidents = incidents[:10]
                 return json.dumps(incidents)
             elif len(incidents) < 10:
-                print(f"O modelo gerou apenas {len(incidents)} incidentes em vez de 10. Gerando os {10 - len(incidents)} restantes...")
+                print(f"The model generated only {len(incidents)} incidents instead of 10. Generating the remaining {10 - len(incidents)}...")
                 
-                # Gerar os incidentes faltantes
+                # Generate the missing incidents
                 missing_count = 10 - len(incidents)
                 additional_prompt = (
-                    f"Gere EXATAMENTE {missing_count} incidentes técnicos ADICIONAIS e DIFERENTES dos seguintes que já foram gerados:\n\n"
+                    f"Generate EXACTLY {missing_count} ADDITIONAL and DIFFERENT technical incidents from the following that have already been generated:\n\n"
                     f"{json.dumps(incidents, indent=2)}\n\n"
-                    f"Os novos incidentes devem seguir o mesmo formato, mas ser completamente diferentes em conteúdo.\n"
-                    f"Retorne apenas um array JSON com os {missing_count} NOVOS incidentes, sem incluir os anteriores.\n"
-                    f"Cada incidente deve ter um título técnico específico e uma descrição detalhada em primeira pessoa."
+                    f"The new incidents should follow the same format, but be completely different in content.\n"
+                    f"Return only a JSON array with the {missing_count} NEW incidents, without including the previous ones.\n"
+                    f"Each incident should have a specific technical title and a detailed first-person description."
                 )
                 
                 additional_messages = [
                     {
                         "role": "system",
-                        "content": "Você é um ESPECIALISTA em criar simulações realistas de problemas técnicos. Gere exatamente o número solicitado de incidentes, nem mais nem menos."
+                        "content": "You are an EXPERT in creating realistic simulations of technical problems. Generate exactly the requested number of incidents, no more, no less."
                     },
                     {
                         "role": "user",
@@ -252,30 +252,30 @@ class IncidentSeeder(LLMUtils):
                 
                 additional_response = self.llm_model.generate_completion(additional_messages)
                 
-                # Usar métodos robustos para analisar a resposta adicional
+                # Use robust methods to analyze the additional response
                 try:
                     additional_incidents = self.robust_json_parse(additional_response)
-                    print(f"JSON adicional processado com sucesso! Encontrados {len(additional_incidents)} incidentes adicionais.")
+                    print(f"Additional JSON processed successfully! Found {len(additional_incidents)} additional incidents.")
                     
-                    # Garantir que não pegamos mais do que precisamos
+                    # Ensure we don't take more than we need
                     additional_incidents = additional_incidents[:missing_count]
-                    # Combinar os incidentes originais com os adicionais
+                    # Combine the original incidents with the additional ones
                     incidents.extend(additional_incidents)
-                    print(f"Agora temos {len(incidents)} incidentes no total.")
+                    print(f"Now we have {len(incidents)} incidents in total.")
                     return json.dumps(incidents)
                 except Exception as e:
-                    print(f"Erro ao processar incidentes adicionais: {e}")
-                    # Continuar com os incidentes que já temos
-                    print("Continuando com os incidentes já gerados.")
+                    print(f"Error processing additional incidents: {e}")
+                    # Continue with the incidents we already have
+                    print("Continuing with the incidents already generated.")
             
             return clean_response
         except json.JSONDecodeError as e:
-            print(f"Erro ao processar JSON: {e}")
+            print(f"Error processing JSON: {e}")
 
-        # Tentar pedir correção ao modelo
+        # Try to ask the model for correction
         correction_prompt = (
-            "Corrija o conteúdo abaixo para que ele seja um array JSON válido, contendo EXATAMENTE 10 objetos com as chaves 'title' e 'description'.\n"
-            "Remova qualquer texto fora do JSON, e devolva apenas o JSON com EXATAMENTE 10 itens:\n\n"
+            "Correct the content below so that it is a valid JSON array, containing EXACTLY 10 objects with the keys 'title' and 'description'.\n"
+            "Remove any text outside the JSON, and return only the JSON with EXACTLY 10 items:\n\n"
             f"{response}"
         )
         correction_messages = [{"role": "user", "content": correction_prompt}]
@@ -283,64 +283,64 @@ class IncidentSeeder(LLMUtils):
         clean_corrected = self.extract_json(corrected)
 
         if self.is_valid_json(clean_corrected):
-            # Verificar novamente o número de incidentes após a correção
+            # Check again the number of incidents after correction
             try:
                 incidents = json.loads(clean_corrected)
                 if len(incidents) > 10:
-                    print(f"Após correção, o modelo ainda gerou {len(incidents)} incidentes. Limitando para 10...")
+                    print(f"After correction, the model still generated {len(incidents)} incidents. Limiting to 10...")
                     incidents = incidents[:10]
                     return json.dumps(incidents)
             except json.JSONDecodeError:
                 pass
             return clean_corrected
         else:
-            print("Erro: O modelo não conseguiu gerar um JSON válido mesmo após a correção.")
-            return "[]  # Falha ao gerar JSON válido mesmo após correção"
+            print("Error: The model could not generate a valid JSON even after correction.")
+            return "[]  # Failed to generate valid JSON even after correction"
 
 def get_default_incidents():
     """
-    Retorna uma lista de incidentes padrão para usar como fallback.
+    Returns a list of default incidents to use as fallback.
     """
     return [
         {
-            "title": "Erro 404 ao tentar acessar relatórios de pedigree em dispositivos iOS",
-            "description": "Estou tentando acessar os relatórios de pedigree do meu cachorro através do meu iPhone 13 com iOS 16.2, mas constantemente recebo um erro 404. Já tentei usar diferentes navegadores (Safari, Chrome e Firefox), limpar o cache e cookies, e até mesmo reinstalar os aplicativos, mas o problema persiste. Curiosamente, consigo acessar os relatórios normalmente através do meu laptop com Windows. Este problema está impedindo que eu verifique informações importantes sobre a linhagem do meu cachorro durante visitas a exposições caninas. A mensagem de erro exata é: 'Erro 404: Recurso não encontrado. O relatório solicitado não está disponível no momento.' Preciso urgentemente de uma solução, pois tenho uma exposição importante em três dias."
+            "title": "404 Error when trying to access pedigree reports on iOS devices",
+            "description": "I'm trying to access my dog's pedigree reports through my iPhone 13 with iOS 16.2, but I constantly receive a 404 error. I've tried using different browsers (Safari, Chrome, and Firefox), clearing cache and cookies, and even reinstalling the apps, but the problem persists. Interestingly, I can access the reports normally through my Windows laptop. This issue is preventing me from checking important information about my dog's lineage during dog show visits. The exact error message is: '404 Error: Resource not found. The requested report is not available at this time.' I urgently need a solution, as I have an important show in three days."
         },
         {
-            "title": "Falha na sincronização de dados do cachorro com a pedigree em diferentes dispositivos",
-            "description": "Atualizei as informações do meu cachorro (vacinas, peso, altura) no meu tablet Android (Samsung Galaxy Tab S7, Android 12), mas quando acesso o sistema pelo meu computador (Windows 11, Chrome 98.0.4758.102), as alterações não aparecem. Já tentei forçar a sincronização usando o botão 'Atualizar dados' na interface, limpei o cache do navegador, e até mesmo esperei 24 horas, mas as informações continuam desatualizadas. O console de desenvolvedor mostra o erro: 'SyncError: Failed to update record #45872 - Database conflict'. Este problema está afetando meu trabalho como criador, pois preciso ter acesso consistente aos dados atualizados em todos os dispositivos para gerenciar adequadamente meu canil."
+            "title": "Failure in synchronizing dog data with pedigree across different devices",
+            "description": "I updated my dog's information (vaccines, weight, height) on my Android tablet (Samsung Galaxy Tab S7, Android 12), but when I access the system from my computer (Windows 11, Chrome 98.0.4758.102), the changes don't appear. I've tried forcing synchronization using the 'Update data' button in the interface, cleared the browser cache, and even waited 24 hours, but the information remains outdated. The developer console shows the error: 'SyncError: Failed to update record #45872 - Database conflict'. This issue is affecting my work as a breeder, as I need consistent access to updated data across all devices to properly manage my kennel."
         },
         {
-            "title": "Incompatibilidade do sistema com navegador Firefox 98.2 ao fazer upload de fotos",
-            "description": "Estou tentando fazer upload de fotos do meu cachorro usando o Firefox 98.2 no Windows 10, mas o sistema trava consistentemente após selecionar as imagens. O indicador de progresso chega a 45% e então congela, seguido por uma mensagem de erro: 'Falha no processamento de imagem: formato não suportado'. As mesmas imagens (JPG, 2MB cada) funcionam perfeitamente quando uso o Chrome. Já tentei desativar todas as extensões do Firefox, limpar o cache e até reinstalar o navegador, mas o problema persiste. Inspecionando o console, vejo o erro: 'Uncaught TypeError: Cannot read property 'processImage' of undefined'. Isso está atrasando a atualização do perfil dos meus cachorros para o próximo evento de exposição."
+            "title": "System incompatibility with Firefox 98.2 browser when uploading photos",
+            "description": "I'm trying to upload photos of my dog using Firefox 98.2 on Windows 10, but the system consistently freezes after selecting the images. The progress indicator reaches 45% and then freezes, followed by an error message: 'Image processing failure: unsupported format'. The same images (JPG, 2MB each) work perfectly when I use Chrome. I've tried disabling all Firefox extensions, clearing the cache, and even reinstalling the browser, but the problem persists. Inspecting the console, I see the error: 'Uncaught TypeError: Cannot read property 'processImage' of undefined'. This is delaying the update of my dogs' profiles for the next exhibition event."
         },
         {
-            "title": "Erro ao tentar gerar certificado de pedigree em formato PDF",
-            "description": "Quando tento gerar o certificado de pedigree em PDF para meu cachorro recém-registrado, o sistema processa por aproximadamente 30 segundos e depois exibe a mensagem: 'Erro na geração do documento: Falha ao renderizar gráfico de linhagem'. Estou usando um MacBook Pro com macOS Monterey 12.3 e Safari 15.4. Já tentei usar o Chrome e o Firefox, mas o resultado é o mesmo. O problema ocorre especificamente com este cachorro; consigo gerar certificados para outros animais sem problemas. Analisando o histórico deste animal, notei que ele tem uma linhagem particularmente extensa (7 gerações completas), o que pode estar causando o problema. Preciso deste certificado para uma exposição internacional na próxima semana."
+            "title": "Error when trying to generate pedigree certificate in PDF format",
+            "description": "When I try to generate the PDF pedigree certificate for my newly registered dog, the system processes for approximately 30 seconds and then displays the message: 'Document generation error: Failed to render lineage chart'. I'm using a MacBook Pro with macOS Monterey 12.3 and Safari 15.4. I've tried using Chrome and Firefox, but the result is the same. The problem occurs specifically with this dog; I can generate certificates for other animals without issues. Analyzing this animal's history, I noticed it has a particularly extensive lineage (7 complete generations), which may be causing the problem. I need this certificate for an international exhibition next week."
         },
         {
-            "title": "Sistema trava ao tentar adicionar mais de 5 fotos simultaneamente na galeria do cachorro",
-            "description": "Estou tentando adicionar 8 fotos de alta resolução (cada uma com aproximadamente 4MB, formato JPEG) simultaneamente na galeria do meu cachorro, mas o sistema trava completamente. O navegador (Chrome 99.0.4844.51 no Windows 11) fica sem responder por cerca de 2 minutos e depois exibe a mensagem: 'Esta página não está respondendo. Aguarde ou encerre o processo'. No console de desenvolvedor, vejo o erro: 'OutOfMemoryError: Allocation failed - JavaScript heap out of memory'. Se adiciono as fotos uma por uma, funciona, mas é extremamente ineficiente. Já tentei reduzir a resolução das imagens e usar diferentes navegadores, mas o problema persiste com múltiplos uploads."
+            "title": "System freezes when trying to add more than 5 photos simultaneously to dog gallery",
+            "description": "I'm trying to add 8 high-resolution photos (each approximately 4MB, JPEG format) simultaneously to my dog's gallery, but the system completely freezes. The browser (Chrome 99.0.4844.51 on Windows 11) becomes unresponsive for about 2 minutes and then displays the message: 'This page is not responding. Wait or end process'. In the developer console, I see the error: 'OutOfMemoryError: Allocation failed - JavaScript heap out of memory'. If I add the photos one by one, it works, but it's extremely inefficient. I've tried reducing the image resolution and using different browsers, but the problem persists with multiple uploads."
         },
         {
-            "title": "Falha ao exportar histórico médico do cachorro para formato CSV",
-            "description": "Estou tentando exportar o histórico médico completo do meu cachorro para um arquivo CSV para compartilhar com o veterinário, mas o sistema gera um arquivo corrompido. Quando tento abrir o arquivo no Excel ou Google Sheets, recebo a mensagem: 'O arquivo está danificado e não pode ser aberto'. Analisando o arquivo gerado, percebi que ele contém caracteres estranhos no início (�PNG) e parece estar misturando formatos. Estou usando um Dell XPS 15 com Windows 10 Pro e Edge 99.0.1150.46. Já tentei diferentes navegadores e até mesmo acessar de outro computador, mas o problema persiste. O histórico deste cachorro é particularmente extenso, com 47 entradas médicas ao longo de 6 anos."
+            "title": "Failure to export dog medical history to CSV format",
+            "description": "I'm trying to export my dog's complete medical history to a CSV file to share with the veterinarian, but the system generates a corrupted file. When I try to open the file in Excel or Google Sheets, I receive the message: 'The file is damaged and cannot be opened'. Analyzing the generated file, I noticed it contains strange characters at the beginning (�PNG) and seems to be mixing formats. I'm using a Dell XPS 15 with Windows 10 Pro and Edge 99.0.1150.46. I've tried different browsers and even accessing from another computer, but the problem persists. This dog's history is particularly extensive, with 47 medical entries over 6 years."
         },
         {
-            "title": "Erro de validação ao tentar registrar cachorro com microchip já existente",
-            "description": "Estou tentando registrar um novo cachorro no sistema, mas recebo o erro: 'Validação falhou: O número de microchip 900182000123456 já está registrado no sistema'. O problema é que este cachorro é meu e acabou de ser transferido para mim por outro criador que também usa o sistema. Já verifiquei com o criador anterior e ele confirmou que removeu o cachorro do sistema dele antes da transferência. Tentei contatar o suporte técnico, mas ainda não recebi resposta após 3 dias. Preciso registrar este animal urgentemente para participar de uma exposição na próxima semana. Estou usando um HP Pavilion com Windows 10 e Chrome 98.0.4758.102."
+            "title": "Validation error when trying to register dog with existing microchip",
+            "description": "I'm trying to register a new dog in the system, but I receive the error: 'Validation failed: Microchip number 900182000123456 is already registered in the system'. The problem is that this dog is mine and has just been transferred to me by another breeder who also uses the system. I've checked with the previous breeder and he confirmed that he removed the dog from his system before the transfer. I tried contacting technical support, but I haven't received a response after 3 days. I need to register this animal urgently to participate in an exhibition next week. I'm using an HP Pavilion with Windows 10 and Chrome 98.0.4758.102."
         },
         {
-            "title": "Interface de usuário quebrada ao acessar o sistema em tela ultrawide (21:9)",
-            "description": "Estou usando um monitor ultrawide LG 34WN750 com resolução 3440x1440 (proporção 21:9) e o layout da interface do sistema está completamente quebrado. Os elementos da página estão sobrepostos, alguns botões ficam inacessíveis e o menu lateral desaparece parcialmente sob outros elementos. Já tentei diferentes navegadores (Chrome, Firefox e Edge), ajustar o zoom da página e até mesmo mudar a resolução do monitor, mas o problema persiste. Curiosamente, quando conecto meu laptop a um monitor padrão 16:9, tudo funciona perfeitamente. Este problema está afetando significativamente minha produtividade, pois preciso alternar constantemente entre monitores para usar o sistema adequadamente."
+            "title": "Broken user interface when accessing the system on ultrawide screen (21:9)",
+            "description": "I'm using an LG 34WN750 ultrawide monitor with 3440x1440 resolution (21:9 aspect ratio) and the system interface layout is completely broken. Page elements are overlapping, some buttons are inaccessible, and the side menu partially disappears under other elements. I've tried different browsers (Chrome, Firefox, and Edge), adjusting the page zoom, and even changing the monitor resolution, but the problem persists. Interestingly, when I connect my laptop to a standard 16:9 monitor, everything works perfectly. This issue is significantly affecting my productivity, as I need to constantly switch between monitors to use the system properly."
         },
         {
-            "title": "Sistema não calcula corretamente a idade do cachorro em exposições",
-            "description": "Descobri que o sistema está calculando incorretamente a idade do meu cachorro para fins de categorização em exposições. Meu cachorro nasceu em 15/03/2020, mas o sistema está considerando-o como tendo 6 meses a menos do que realmente tem. Isso fez com que ele fosse inscrito na categoria errada em uma exposição recente, o que resultou em sua desclassificação. Analisando mais detalhadamente, percebi que o problema ocorre apenas com cachorros nascidos no primeiro trimestre de 2020. Estou usando um Lenovo ThinkPad com Windows 11 e Firefox 97.0.1. Já tentei atualizar os dados do cachorro e até mesmo excluí-lo e registrá-lo novamente, mas o cálculo continua incorreto."
+            "title": "System incorrectly calculates dog age for exhibitions",
+            "description": "I discovered that the system is incorrectly calculating my dog's age for exhibition categorization purposes. My dog was born on 03/15/2020, but the system is considering it as 6 months younger than it actually is. This caused it to be entered in the wrong category at a recent exhibition, which resulted in its disqualification. Upon closer analysis, I noticed that the problem only occurs with dogs born in the first quarter of 2020. I'm using a Lenovo ThinkPad with Windows 11 and Firefox 97.0.1. I've tried updating the dog's data and even deleting and re-registering it, but the calculation remains incorrect."
         },
         {
-            "title": "Falha ao tentar conectar conta do sistema com aplicativo móvel",
-            "description": "Estou tentando conectar minha conta do sistema LIBERDADE ANIMAL com o aplicativo móvel (versão 2.3.5 no Android 12, Samsung Galaxy S22). Quando insiro minhas credenciais no aplicativo e clico em 'Conectar', recebo a mensagem: 'Falha na autenticação: Token inválido'. Já verifiquei que minhas credenciais estão corretas (consigo fazer login normalmente pelo navegador), reinstalei o aplicativo, limpei os dados do aplicativo e até mesmo resetei as configurações de rede do meu celular. No log de erros do aplicativo, vejo: 'OAuth2Error: Invalid grant_type parameter'. Este problema está impedindo que eu receba notificações importantes sobre meus cachorros e acesse informações quando estou em exposições sem acesso a um computador."
+            "title": "Failure when trying to connect system account with mobile app",
+            "description": "I'm trying to connect my ANIMAL FREEDOM system account with the mobile app (version 2.3.5 on Android 12, Samsung Galaxy S22). When I enter my credentials in the app and click 'Connect', I receive the message: 'Authentication failure: Invalid token'. I've verified that my credentials are correct (I can log in normally through the browser), reinstalled the app, cleared the app data, and even reset my phone's network settings. In the app's error log, I see: 'OAuth2Error: Invalid grant_type parameter'. This issue is preventing me from receiving important notifications about my dogs and accessing information when I'm at exhibitions without access to a computer."
         }
     ]
 
@@ -350,92 +350,92 @@ def main():
     seeder = IncidentSeeder(llm_model)
     sender = EmailSender(email=os.getenv("SEEDER_MAILER"), password=os.getenv("SEEDER_MAILER_PWD"))
 
-    print("Iniciando o Seeder de Incidentes...")
+    print("Starting the Incidents Seeder...")
 
-    # Tentar gerar incidentes com o LLM
+    # Try to generate incidents with the LLM
     try:
         incidents = seeder.generate_incidents()
         
-        # Tentar extrair e processar o JSON de forma simplificada
+        # Try to extract and process the JSON in a simplified way
         try:
-            # Extrair o JSON da resposta
+            # Extract the JSON from the response
             json_text = incidents
             
-            # Se o texto não começa com '[', tentar encontrar o início do JSON
+            # If the text doesn't start with '[', try to find the beginning of the JSON
             if not json_text.strip().startswith('['):
                 start = json_text.find('[')
                 if start >= 0:
                     json_text = json_text[start:]
             
-            # Limpar o JSON para corrigir problemas simples
+            # Clean the JSON to fix simple problems
             json_text = json_text.replace(";", ",").replace("'", '"')
             
-            # Corrigir problemas comuns com vírgulas em descrições
+            # Fix common problems with commas in descriptions
             json_text = re.sub(r'("description":\s*"[^"]*)"([^"]*")', r'\1\\\"\2', json_text)
             
-            # Tentar carregar o JSON
+            # Try to load the JSON
             incidents_list = json.loads(json_text)
-            print(f"JSON processado com sucesso! Encontrados {len(incidents_list)} incidentes.")
+            print(f"JSON processed successfully! Found {len(incidents_list)} incidents.")
         except Exception as e:
-            print(f"Erro ao processar JSON: {e}")
+            print(f"Error processing JSON: {e}")
             
-            # Tentar uma abordagem mais simples para extrair o JSON
+            # Try a simpler approach to extract the JSON
             try:
-                # Procurar por um array JSON na resposta
+                # Look for a JSON array in the response
                 start = incidents.find("[")
                 end = incidents.rfind("]") + 1
                 if start >= 0 and end > start:
                     json_text = incidents[start:end]
-                    # Substituir aspas simples por aspas duplas
+                    # Replace single quotes with double quotes
                     json_text = json_text.replace("'", '"')
-                    # Substituir pontos e vírgulas por vírgulas
+                    # Replace semicolons with commas
                     json_text = json_text.replace(";", ",")
-                    # Tentar carregar o JSON
+                    # Try to load the JSON
                     incidents_list = json.loads(json_text)
-                    print(f"JSON extraído com método alternativo! Encontrados {len(incidents_list)} incidentes.")
+                    print(f"JSON extracted with alternative method! Found {len(incidents_list)} incidents.")
                 else:
-                    # Se não conseguir extrair o JSON, usar incidentes padrão
-                    print("Não foi possível encontrar um array JSON na resposta. Usando incidentes padrão...")
+                    # If unable to extract the JSON, use default incidents
+                    print("Could not find a JSON array in the response. Using default incidents...")
                     incidents_list = get_default_incidents()
             except Exception as e2:
-                print(f"Falha na extração alternativa: {e2}")
-                print("Usando incidentes padrão...")
+                print(f"Alternative extraction failed: {e2}")
+                print("Using default incidents...")
                 incidents_list = get_default_incidents()
     except Exception as e:
-        print(f"Erro ao gerar incidentes com o LLM: {e}")
-        print("Usando incidentes padrão...")
+        print(f"Error generating incidents with the LLM: {e}")
+        print("Using default incidents...")
         incidents_list = get_default_incidents()
-    # Verificar se há títulos duplicados e garantir que temos exatamente 10 incidentes únicos
+    # Check for duplicate titles and ensure we have exactly 10 unique incidents
     unique_titles = set()
     unique_incidents = []
     
-    # Primeiro, filtrar os incidentes para manter apenas os com títulos únicos
+    # First, filter incidents to keep only those with unique titles
     for incident in incidents_list:
         title = incident['title']
         if title not in unique_titles:
             unique_titles.add(title)
             unique_incidents.append(incident)
         else:
-            print(f"Removendo incidente com título duplicado: {title}")
+            print(f"Removing incident with duplicate title: {title}")
     
-    # Agora, verificar se temos 10 incidentes únicos
+    # Now, check if we have 10 unique incidents
     if len(unique_incidents) != 10:
-        print(f"AVISO: Temos {len(unique_incidents)} incidentes com títulos únicos em vez de 10.")
+        print(f"WARNING: We have {len(unique_incidents)} incidents with unique titles instead of 10.")
         
-        # Se tiver mais de 10, corta para ficar com apenas 10
+        # If there are more than 10, cut to keep only 10
         if len(unique_incidents) > 10:
-            print(f"Cortando para 10 incidentes...")
+            print(f"Cutting to 10 incidents...")
             unique_incidents = unique_incidents[:10]
         
-        # Se tiver menos de 10, gerar incidentes padrão para completar
+        # If there are less than 10, generate default incidents to complete
         else:
             missing = 10 - len(unique_incidents)
-            print(f"Gerando {missing} incidentes padrão para completar o total de 10...")
+            print(f"Generating {missing} default incidents to complete the total of 10...")
             
-            # Obter incidentes padrão para completar
+            # Get default incidents to complete
             default_incidents = get_default_incidents()
             
-            # Adicionar apenas incidentes padrão com títulos que ainda não existem
+            # Add only default incidents with titles that don't already exist
             added = 0
             for incident in default_incidents:
                 if incident['title'] not in unique_titles and added < missing:
@@ -443,29 +443,29 @@ def main():
                     unique_titles.add(incident['title'])
                     added += 1
             
-            # Se ainda faltam incidentes, criar novos com títulos modificados
+            # If incidents are still missing, create new ones with modified titles
             if added < missing:
                 remaining = missing - added
-                print(f"Ainda precisamos de {remaining} incidentes únicos. Gerando com títulos modificados...")
+                print(f"We still need {remaining} unique incidents. Generating with modified titles...")
                 
                 for i in range(remaining):
-                    # Criar um título único adicionando um timestamp
+                    # Create a unique title by adding a timestamp
                     import time
                     timestamp = int(time.time()) + i
                     
                     new_incident = {
-                        "title": f"Problema técnico #{timestamp % 1000} no sistema LIBERDADE ANIMAL",
-                        "description": f"Estou enfrentando um problema técnico ao utilizar o sistema LIBERDADE ANIMAL. Quando tento acessar a funcionalidade principal, recebo uma mensagem de erro que impede o uso normal da plataforma. Já tentei atualizar a página, limpar o cache do navegador e até mesmo usar um navegador diferente, mas o problema persiste. Este erro está afetando minha produtividade e preciso de uma solução urgente para continuar meu trabalho. Por favor, ajudem a resolver este problema o mais rápido possível. Agradeço antecipadamente pela atenção e suporte."
+                        "title": f"Technical issue #{timestamp % 1000} in the ANIMAL FREEDOM system",
+                        "description": f"I am experiencing a technical issue when using the ANIMAL FREEDOM system. When I try to access the main functionality, I receive an error message that prevents normal use of the platform. I have tried refreshing the page, clearing the browser cache, and even using a different browser, but the problem persists. This error is affecting my productivity and I need an urgent solution to continue my work. Please help resolve this issue as soon as possible. Thank you in advance for your attention and support."
                     }
                     
                     unique_incidents.append(new_incident)
             
-            print(f"Agora temos exatamente {len(unique_incidents)} incidentes com títulos únicos para processar.")
+            print(f"Now we have exactly {len(unique_incidents)} incidents with unique titles to process.")
     
-    # Atualizar a lista de incidentes para usar apenas os com títulos únicos
+    # Update the incident list to use only those with unique titles
     incidents_list = unique_incidents
     
-    print(f"Processando {len(incidents_list)} incidentes...")
+    print(f"Processing {len(incidents_list)} incidents...")
     
     for i, incident in enumerate(incidents_list):
         try:
@@ -474,11 +474,11 @@ def main():
                 subject=incident['title'],
                 body=incident['description']
             )
-            print(f"E-mail {i + 1} enviado com sucesso.")
+            print(f"Email {i + 1} sent successfully.")
         except Exception as e:
-            print(f"Erro ao enviar e-mail {i + 1}: {e}")
+            print(f"Error sending email {i + 1}: {e}")
 
-    print("Seeder de Incidentes concluído.")
+    print("Incidents Seeder completed.")
 
 if __name__ == "__main__":
     main()

@@ -4,7 +4,7 @@ import os
 
 load_dotenv()
 
-# Backup Script para ler e-mails usando IMAP
+# Backup Script to read emails using IMAP
 class EmailReader:
     def __init__(self, params):
         self.params = params
@@ -16,7 +16,7 @@ class EmailReader:
         emails = []
         with MailBox("imap.gmail.com").login(self.email, self.password, initial_folder="INBOX") as mailbox:
             for msg in mailbox.fetch(AND(seen=self.seen), limit=10, reverse=True):
-                is_reply = "In-Reply-To" in msg.headers  # checa se existe o header
+                is_reply = "In-Reply-To" in msg.headers  # checks if the header exists
                 emails.append({
                     "id": msg.uid,
                     "from": msg.from_,

@@ -6,39 +6,39 @@ import re
 
 def main():
     """
-    Função principal para indexar emails e suas respostas.
-    Esta função limpa a coleção existente e reindexar tudo do zero.
+    Main function to index emails and their responses.
+    This function cleans the existing collection and reindexes everything from scratch.
     """
-    print("Indexando todos os emails...")
+    print("Indexing all emails...")
     
-    # Configurar ChromaDB
+    # Configure ChromaDB
     default_ef = embedding_functions.DefaultEmbeddingFunction()
     
-    # Garantir que o diretório existe
+    # Ensure directory exists
     os.makedirs("./db/chroma_persist", exist_ok=True)
     
     try:
         chromadb_client = chromadb.PersistentClient(path="./db/chroma_persist")
         
-        # Verificar se a coleção existe e deletá-la
+        # Check if collection exists and delete it
         try:
             collection = chromadb_client.get_collection("email_bot")
-            print("Coleção existente encontrada. Deletando...")
+            print("Existing collection found. Deleting...")
             chromadb_client.delete_collection("email_bot")
-            print("Coleção deletada com sucesso.")
+            print("Collection deleted successfully.")
         except Exception as e:
-            print(f"Nenhuma coleção existente encontrada ou erro ao deletar: {e}")
+            print(f"No existing collection found or error deleting: {e}")
         
-        # Criar uma nova coleção
+        # Create a new collection
         collection = chromadb_client.create_collection("email_bot", embedding_function=default_ef)
-        print("Nova coleção criada com sucesso.")
+        print("New collection created successfully.")
         
-        # Ler emails
+        # Read emails
         reader = EmailReader()
         emails = reader.read_emails(max_results=10, query='')
-        print(f"Total de emails lidos: {len(emails)}")
+        print(f"Total emails read: {len(emails)}")
         
-        # Agrupar emails por thread_id
+        # Group emails by thread_id
         threads = {}
         for email in emails:
             thread_id = email['thread_id']
@@ -46,55 +46,55 @@ def main():
                 threads[thread_id] = []
             threads[thread_id].append(email)
         
-        print(f"Total de threads: {len(threads)}")
+        print(f"Total threads: {len(threads)}")
         
-        # Processar cada thread
+        # Process each thread
         for thread_id, thread_emails in threads.items():
-            print(f"\nProcessando thread {thread_id} com {len(thread_emails)} emails")
+            print(f"\nProcessing thread {thread_id} with {len(thread_emails)} emails")
             
             if len(thread_emails) == 0:
                 continue
                 
-            # O primeiro email é a pergunta
+            # The first email is the question
             original_email = thread_emails[0]
-            question_id = f"{thread_id}-pergunta"
+            question_id = f"{thread_id}-question"
             
-            # Preparar metadados da pergunta, garantindo que não haja valores None
+            # Prepare question metadata, ensuring there are no None values
             question_metadata = {
                 "from": original_email.get("from", ""),
                 "subject": original_email.get("subject", ""),
                 "text": original_email.get("text", ""),
-                "type": "pergunta",
+                "type": "question",
                 "thread_id": thread_id,
                 "message_id": original_email.get("message_id", ""),
                 "has_response": len(thread_emails) > 1
             }
             
-            # Garantir que nenhum valor seja None
+            # Ensure no value is None
             for key, value in list(question_metadata.items()):
                 if value is None:
                     question_metadata[key] = ""
             
-            # Armazenar a pergunta
+            # Store the question
             collection.add(
                 ids=[question_id],
                 documents=[original_email["text"]],
                 metadatas=[question_metadata]
             )
             
-            print(f"Pergunta indexada com ID: {question_id}")
+            print(f"Question indexed with ID: {question_id}")
             
-            # Se houver mais emails, o último é a resposta
+            # If there are more emails, the last one is the answer
             if len(thread_emails) > 1:
                 response_email = thread_emails[-1]
-                response_id = f"{thread_id}-resposta"
+                response_id = f"{thread_id}-answer"
                 
-                # Preparar metadados, garantindo que não haja valores None
+                # Prepare metadata, ensuring there are no None values
                 response_metadata = {
                     "from": response_email.get("from", ""),
                     "subject": response_email.get("subject", ""),
                     "text": response_email.get("text", ""),
-                    "type": "resposta",
+                    "type": "answer",
                     "thread_id": thread_id,
                     "message_id": response_email.get("message_id", ""),
                     "in_reply_to": original_email.get("message_id", ""),
@@ -102,54 +102,54 @@ def main():
                     "original_subject": original_email.get("subject", "")
                 }
                 
-                # Garantir que nenhum valor seja None
+                # Ensure no value is None
                 for key, value in list(response_metadata.items()):
                     if value is None:
                         response_metadata[key] = ""
                 
-                # Armazenar a resposta
+                # Store the answer
                 collection.add(
                     ids=[response_id],
                     documents=[response_email["text"]],
                     metadatas=[response_metadata]
                 )
                 
-                print(f"Resposta indexada com ID: {response_id}")
+                print(f"Answer indexed with ID: {response_id}")
                 
-                # Preparar metadados atualizados da pergunta, garantindo que não haja valores None
+                # Prepare updated question metadata, ensuring there are no None values
                 updated_question_metadata = {
                     "from": original_email.get("from", ""),
                     "subject": original_email.get("subject", ""),
                     "text": original_email.get("text", ""),
-                    "type": "pergunta",
+                    "type": "question",
                     "thread_id": thread_id,
                     "message_id": original_email.get("message_id", ""),
                     "has_response": True,
                     "response_id": response_id
                 }
                 
-                # Garantir que nenhum valor seja None
+                # Ensure no value is None
                 for key, value in list(updated_question_metadata.items()):
                     if value is None:
                         updated_question_metadata[key] = ""
                 
-                # Atualizar a pergunta para indicar que tem resposta
+                # Update the question to indicate it has an answer
                 collection.update(
                     ids=[question_id],
                     metadatas=[updated_question_metadata]
                 )
                 
-                print(f"Pergunta atualizada com referência à resposta: {response_id}")
+                print(f"Question updated with reference to answer: {response_id}")
         
-        print("\nIndexação concluída com sucesso!")
+        print("\nIndexing completed successfully!")
         
     except Exception as e:
-        print(f"Erro durante a indexação: {e}")
+        print(f"Error during indexing: {e}")
 
 def debug_question_answer_pairs():
     """
-    Função específica para depurar os pares de pergunta-resposta no banco de dados.
-    Mostra detalhadamente cada pergunta e sua resposta correspondente.
+    Specific function to debug question-answer pairs in the database.
+    Shows in detail each question and its corresponding answer.
     """
     default_ef = embedding_functions.DefaultEmbeddingFunction()
     
@@ -157,114 +157,114 @@ def debug_question_answer_pairs():
         chromadb_client = chromadb.PersistentClient(path="./db/chroma_persist")
         collection = chromadb_client.get_collection("email_bot")
     except Exception as e:
-        print(f"Erro ao acessar a coleção: {e}")
-        print("Verifique se a coleção foi criada executando a função main() primeiro.")
+        print(f"Error accessing collection: {e}")
+        print("Check if the collection was created by running the main() function first.")
         return
 
-    # Buscar todos os documentos e metadados
+    # Get all documents and metadata
     results = collection.get(include=["documents", "metadatas"])
 
-    # Separar perguntas e respostas
-    perguntas = []
-    respostas = []
+    # Separate questions and answers
+    questions = []
+    answers = []
     
     for i, meta in enumerate(results["metadatas"]):
-        if meta.get("type") == "pergunta":
-            perguntas.append((i, results["ids"][i], results["documents"][i], meta))
-        elif meta.get("type") == "resposta":
-            respostas.append((i, results["ids"][i], results["documents"][i], meta))
+        if meta.get("type") == "question":
+            questions.append((i, results["ids"][i], results["documents"][i], meta))
+        elif meta.get("type") == "answer":
+            answers.append((i, results["ids"][i], results["documents"][i], meta))
     
-    print(f"\n=== RESUMO DA DEPURAÇÃO ===")
-    print(f"Total de documentos: {len(results['ids'])}")
-    print(f"Perguntas encontradas: {len(perguntas)}")
-    print(f"Respostas encontradas: {len(respostas)}")
+    print(f"\n=== DEBUG SUMMARY ===")
+    print(f"Total documents: {len(results['ids'])}")
+    print(f"Questions found: {len(questions)}")
+    print(f"Answers found: {len(answers)}")
     print("=" * 50)
     
-    # Verificar se há respostas
-    if len(respostas) == 0:
-        print("\n⚠️ ALERTA: Nenhuma resposta encontrada no banco de dados!")
-        print("Verifique se o processo de indexação está identificando corretamente as respostas.")
-        print("Possíveis causas:")
-        print("1. Os emails de resposta não estão sendo reconhecidos como respostas")
-        print("2. A condição 'is_reply or has_citation' não está sendo satisfeita")
-        print("3. Não há emails de resposta nas threads")
-        print("\nVerifique os emails originais e certifique-se de que há respostas.")
+    # Check if there are answers
+    if len(answers) == 0:
+        print("\nWARNING: No answers found in the database!")
+        print("Check if the indexing process is correctly identifying the answers.")
+        print("Possible causes:")
+        print("1. Response emails are not being recognized as answers")
+        print("2. The condition 'is_reply or has_citation' is not being satisfied")
+        print("3. There are no response emails in the threads")
+        print("\nCheck the original emails and make sure there are responses.")
     else:
-        print(f"\n✅ {len(respostas)} respostas encontradas no banco de dados.")
+        print(f"\n{len(answers)} answers found in the database.")
     
-    # Mostrar todas as respostas detalhadamente
-    print("\n=== TODAS AS RESPOSTAS ENCONTRADAS ===")
-    for i, id_, doc, meta in respostas:
-        print(f"\nResposta ID: {id_}")
+    # Show all answers in detail
+    print("\n=== ALL ANSWERS FOUND ===")
+    for i, id_, doc, meta in answers:
+        print(f"\nAnswer ID: {id_}")
         print(f"Thread ID: {meta.get('thread_id')}")
-        print(f"De: {meta.get('from')}")
-        print(f"Assunto: {meta.get('subject')}")
-        print(f"Em resposta a: {meta.get('in_reply_to')}")
-        print(f"Texto completo da resposta:\n{doc}")
+        print(f"From: {meta.get('from')}")
+        print(f"Subject: {meta.get('subject')}")
+        print(f"In reply to: {meta.get('in_reply_to')}")
+        print(f"Full answer text:\n{doc}")
         print("-" * 50)
     
-    # Mostrar todos os pares pergunta-resposta
-    print("\n=== PARES PERGUNTA-RESPOSTA DETALHADOS ===")
-    for i, id_, doc, meta in perguntas:
-        print(f"\nPergunta ID: {id_}")
+    # Show all question-answer pairs
+    print("\n=== DETAILED QUESTION-ANSWER PAIRS ===")
+    for i, id_, doc, meta in questions:
+        print(f"\nQuestion ID: {id_}")
         print(f"Thread ID: {meta.get('thread_id')}")
-        print(f"De: {meta.get('from')}")
-        print(f"Assunto: {meta.get('subject')}")
-        print(f"Tem resposta: {meta.get('has_response', False)}")
-        print(f"Texto completo da pergunta:\n{doc}")
+        print(f"From: {meta.get('from')}")
+        print(f"Subject: {meta.get('subject')}")
+        print(f"Has answer: {meta.get('has_response', False)}")
+        print(f"Full question text:\n{doc}")
         
-        # Se tiver resposta, mostrar
+        # If it has an answer, show it
         if meta.get("has_response") and meta.get("response_id"):
             response_id = meta.get("response_id")
-            print(f"Response ID referenciado: {response_id}")
+            print(f"Referenced Response ID: {response_id}")
             
-            # Listar todos os IDs de resposta disponíveis para depuração
-            available_response_ids = [r_id for _, r_id, _, _ in respostas]
-            print(f"IDs de resposta disponíveis: {available_response_ids}")
+            # List all available response IDs for debugging
+            available_response_ids = [r_id for _, r_id, _, _ in answers]
+            print(f"Available response IDs: {available_response_ids}")
             
-            # Verificar se o ID da resposta está na lista de IDs disponíveis
+            # Check if the response ID is in the list of available IDs
             if response_id in available_response_ids:
-                print(f"✅ ID de resposta encontrado na lista de respostas disponíveis")
+                print(f"Response ID found in the list of available responses")
             else:
-                print(f"❌ ID de resposta NÃO encontrado na lista de respostas disponíveis")
+                print(f"Response ID NOT found in the list of available responses")
             
-            # Buscar a resposta correspondente
+            # Find the corresponding answer
             found_response = False
-            for j, r_id, r_doc, r_meta in respostas:
-                print(f"Comparando '{r_id}' com '{response_id}'")
+            for j, r_id, r_doc, r_meta in answers:
+                print(f"Comparing '{r_id}' with '{response_id}'")
                 if r_id == response_id:
                     found_response = True
-                    print(f"\nResposta correspondente:")
-                    print(f"De: {r_meta.get('from')}")
-                    print(f"Assunto: {r_meta.get('subject')}")
-                    print(f"Texto completo da resposta:\n{r_doc}")
+                    print(f"\nCorresponding answer:")
+                    print(f"From: {r_meta.get('from')}")
+                    print(f"Subject: {r_meta.get('subject')}")
+                    print(f"Full answer text:\n{r_doc}")
                     break
             
             if not found_response:
-                print("\n⚠️ Resposta referenciada mas não encontrada!")
-                print("Tentando buscar por thread_id em vez de response_id...")
+                print("\nWARNING: Referenced answer not found!")
+                print("Trying to find by thread_id instead of response_id...")
                 
-                # Tentar encontrar por thread_id
+                # Try to find by thread_id
                 thread_id = meta.get("thread_id")
-                expected_response_id = f"{thread_id}-resposta"
+                expected_response_id = f"{thread_id}-answer"
                 print(f"Thread ID: {thread_id}, Expected Response ID: {expected_response_id}")
                 
-                for j, r_id, r_doc, r_meta in respostas:
+                for j, r_id, r_doc, r_meta in answers:
                     if r_id == expected_response_id or r_meta.get("thread_id") == thread_id:
-                        print(f"\nResposta encontrada por thread_id:")
+                        print(f"\nAnswer found by thread_id:")
                         print(f"ID: {r_id}")
-                        print(f"De: {r_meta.get('from')}")
-                        print(f"Assunto: {r_meta.get('subject')}")
-                        print(f"Texto completo da resposta:\n{r_doc}")
+                        print(f"From: {r_meta.get('from')}")
+                        print(f"Subject: {r_meta.get('subject')}")
+                        print(f"Full answer text:\n{r_doc}")
                         
-                        # Corrigir o problema atualizando a coleção
-                        print("\n🔄 Corrigindo a referência na coleção...")
+                        # Fix the problem by updating the collection
+                        print("\nFixing the reference in the collection...")
                         try:
                             default_ef = embedding_functions.DefaultEmbeddingFunction()
                             chromadb_client = chromadb.PersistentClient(path="./db/chroma_persist")
                             collection = chromadb_client.get_collection("email_bot")
                             
-                            # Atualizar o metadado da pergunta com o ID correto da resposta
+                            # Update the question metadata with the correct answer ID
                             collection.upsert(
                                 ids=[id_],
                                 documents=[doc],
@@ -273,28 +273,28 @@ def debug_question_answer_pairs():
                                     "response_id": r_id
                                 }]
                             )
-                            print("✅ Referência corrigida com sucesso!")
+                            print("Reference fixed successfully!")
                         except Exception as e:
-                            print(f"❌ Erro ao corrigir referência: {e}")
+                            print(f"Error fixing reference: {e}")
                         
                         break
                 else:
-                    print("\n❌ Não foi possível encontrar uma resposta para esta pergunta.")
+                    print("\nCould not find an answer for this question.")
         else:
-            print("\n⚠️ Esta pergunta não tem resposta associada.")
+            print("\nThis question has no associated answer.")
         
         print("-" * 50)
 
 def search_questions(query_text, n_results=1):
     """
-    Busca perguntas similares ao texto da consulta e retorna as perguntas e respostas correspondentes.
+    Searches for questions similar to the query text and returns the corresponding questions and answers.
     
     Args:
-        query_text (str): O texto da consulta para buscar perguntas similares
-        n_results (int): Número de resultados a retornar
+        query_text (str): The query text to search for similar questions
+        n_results (int): Number of results to return
         
     Returns:
-        list: Lista de dicionários contendo perguntas e respostas
+        list: List of dictionaries containing questions and answers
     """
     default_ef = embedding_functions.DefaultEmbeddingFunction()
     
@@ -302,30 +302,30 @@ def search_questions(query_text, n_results=1):
         chromadb_client = chromadb.PersistentClient(path="./db/chroma_persist")
         collection = chromadb_client.get_collection("email_bot")
     except Exception as e:
-        print(f"Erro ao acessar a coleção: {e}")
-        print("Verifique se a coleção foi criada executando a função main() primeiro.")
+        print(f"Error accessing collection: {e}")
+        print("Check if the collection was created by running the main() function first.")
         return []
     
-    # Buscar apenas documentos do tipo "pergunta"
+    # Search only for documents of type "question"
     results = collection.query(
         query_texts=[query_text],
         n_results=n_results,
-        where={"type": "pergunta"}
+        where={"type": "question"}
     )
     
     qa_pairs = []
     
     if not results["ids"] or len(results["ids"][0]) == 0:
-        print("Nenhum resultado encontrado.")
+        print("No results found.")
         return []
     
-    print(f"\n=== RESULTADOS DA BUSCA PARA: '{query_text}' ===")
+    print(f"\n=== SEARCH RESULTS FOR: '{query_text}' ===")
     
     for i, (id_, doc, meta) in enumerate(zip(results["ids"][0], results["documents"][0], results["metadatas"][0])):
-        print(f"\n{i+1}) Pergunta: {meta.get('subject')}")
-        print(f"   De: {meta.get('from')}")
-        print(f"   Similaridade: {results['distances'][0][i]}")
-        print(f"   Texto: {doc[:150]}...")
+        print(f"\n{i+1}) Question: {meta.get('subject')}")
+        print(f"   From: {meta.get('from')}")
+        print(f"   Similarity: {results['distances'][0][i]}")
+        print(f"   Text: {doc[:150]}...")
         
         qa_pair = {
             "question_id": id_,
@@ -337,7 +337,7 @@ def search_questions(query_text, n_results=1):
             "response_text": None
         }
         
-        # Se tiver resposta, buscar e mostrar
+        # If it has an answer, find and show it
         if meta.get("has_response") and meta.get("response_id"):
             response_id = meta.get("response_id")
             response_results = collection.get(ids=[response_id], include=["documents", "metadatas"])
@@ -346,18 +346,18 @@ def search_questions(query_text, n_results=1):
                 resp_doc = response_results["documents"][0]
                 resp_meta = response_results["metadatas"][0]
                 
-                print(f"\n   RESPOSTA:")
-                print(f"   De: {resp_meta.get('from')}")
-                print(f"   Assunto: {resp_meta.get('subject')}")
-                print(f"   Texto completo da resposta:\n{resp_doc}")
+                print(f"\n   ANSWER:")
+                print(f"   From: {resp_meta.get('from')}")
+                print(f"   Subject: {resp_meta.get('subject')}")
+                print(f"   Full answer text:\n{resp_doc}")
                 
                 qa_pair["response"] = resp_doc
                 qa_pair["response_from"] = resp_meta.get("from")
                 qa_pair["response_subject"] = resp_meta.get("subject")
             else:
-                print("   (Resposta referenciada mas não encontrada)")
+                print("   (Referenced answer not found)")
         else:
-            print("   (Sem resposta)")
+            print("   (No answer)")
         
         print("-" * 40)
         qa_pairs.append(qa_pair)
@@ -366,9 +366,9 @@ def search_questions(query_text, n_results=1):
 
 if __name__ == "__main__":
 
-    # Descomente a função que deseja executar
-    # Exemplo de uso: primeiro indexar os emails e depois buscar por uma pergunta
+    # Uncomment the function you want to execute
+    # Example of use: first index the emails and then search for a question
 
-    main()  # Indexar todos os emails
-    # debug_question_answer_pairs()  # Verificar os pares pergunta-resposta
-    # search_questions("sistema travando ao adicionar fotos", n_results=1)  # Buscar perguntas similares
+    main()  # Index all emails
+    # debug_question_answer_pairs()  # Check question-answer pairs
+    # search_questions("system freezing when adding photos", n_results=1)  # Search for similar questions
