@@ -14,7 +14,10 @@ class AuthService:
         if not user or not PasswordHasher.verify(password, user.password_hash):
             raise UnauthorizedException("Credenciais inválidas")
         
-        token = JWTProvider.create_access_token({"sub": str(user.id)})
+        token = JWTProvider.create_access_token({
+            "sub": str(user.id),
+            "role": user.role
+        })
         return {
             "access_token": token,
             "token_type": "bearer"

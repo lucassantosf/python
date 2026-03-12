@@ -9,3 +9,4 @@ class User(BaseModel):
     id: Optional[int] = None
     email: str
     password_hash: str
+    role: str = "user"

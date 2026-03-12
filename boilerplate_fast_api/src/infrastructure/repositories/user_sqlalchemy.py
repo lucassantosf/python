@@ -13,7 +13,8 @@ class UserSQLAlchemyRepository(UserRepository):
             return User(
                 id=user_model.id, 
                 email=user_model.email, 
-                password_hash=user_model.password_hash
+                password_hash=user_model.password_hash,
+                role=user_model.role
             )
         return None
 
@@ -23,6 +24,7 @@ class UserSQLAlchemyRepository(UserRepository):
             return User(
                 id=user_model.id, 
                 email=user_model.email, 
-                password_hash=user_model.password_hash
+                password_hash=user_model.password_hash,
+                role=user_model.role
             )
         return None
