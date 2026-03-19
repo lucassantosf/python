@@ -28,6 +28,7 @@ src/
 │   └── routes/
 │       ├── auth.py
 │       ├── health.py
+│       ├── posts.py
 │       └── users.py
 ├── core/
 │   ├── auth/
@@ -37,11 +38,17 @@ src/
 │   ├── database/
 │   │   ├── base.py
 │   │   ├── migrations/
+│   │   │   └── versions/
+│   │   │       ├── 9f6394f59e10_create_users_table.py
+│   │   │       ├── 4e476fafdd43_add_role_column_to_users.py
+│   │   │       └── 2f7d4eb54e44_create_posts_table.py
 │   │   ├── models/
-│   │   │   └── user_model.py
+│   │   │   ├── user_model.py
+│   │   │   └── post_model.py
 │   │   └── session.py
 │   ├── repositories/
-│   │   └── user_sqlalchemy.py
+│   │   ├── user_sqlalchemy.py
+│   │   └── post_sqlalchemy.py
 │   ├── security/
 │   │   ├── jwt.py
 │   │   └── password.py
@@ -52,6 +59,11 @@ src/
 │   │   ├── schemas.py
 │   │   └── service.py
 │   ├── posts/
+│   │   ├── dependencies.py
+│   │   ├── domain.py
+│   │   ├── repository.py
+│   │   ├── schemas.py
+│   │   └── service.py
 │   └── users/
 │       ├── dependencies.py
 │       ├── domain.py
@@ -168,11 +180,13 @@ alembic downgrade -1
 
 [x] - Setup DI Auth Repositories into Modules *(Pronto)*
 
-[] - Acl (Access Control Roles)
+[x] - CRUD Example (Posts) *(Pronto — ver seção abaixo)*
+
+[x] - Custom global validation error handler *(Pronto — ver seção abaixo)*
+
+[x] - Acl (Access Control Roles) *(Pronto — `Permission` enum, `Role` enum + `ROLE_PERMISSIONS` map, e `require_permissions()` dependency em uso)*
 
 [] - Model Base to extend other models
-
-[] - CRUD Example (Posts) based on model architecture pattern
 
 [] - Dockerfiles (API and possible Database image)
 
@@ -181,3 +195,56 @@ alembic downgrade -1
 [] - Jobs example (Celery/BackgroundTasks)
 
 [] - Tests Coverage example with PyTest
+
+---
+
+## 📝 CRUD de Posts
+
+O módulo `posts` implementa um CRUD completo seguindo a mesma arquitetura dos demais módulos.
+
+### Endpoints
+
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `GET` | `/api/v1/posts/` | ❌ Público | Lista todos os posts |
+| `GET` | `/api/v1/posts/{id}` | ❌ Público | Retorna um post pelo ID |
+| `POST` | `/api/v1/posts/` | ✅ JWT | Cria um novo post (author_id extraído do token) |
+| `PUT` | `/api/v1/posts/{id}` | ✅ JWT | Atualiza um post (somente o autor pode alterar) |
+| `DELETE` | `/api/v1/posts/{id}` | ✅ JWT | Remove um post (somente o autor pode remover) |
+
+### Regra de Ownership
+
+O `PostService` verifica se `post.author_id == current_user_id` antes de permitir atualizações ou exclusões. Qualquer violação retorna **404** para não vazar se o recurso existe.
+
+### Arquivos criados
+
+| Arquivo | Camada | Papel |
+|---------|--------|-------|
+| `modules/posts/domain.py` | Domínio | Modelo puro Python `Post` |
+| `modules/posts/repository.py` | Módulo (Port) | Interface abstrata do repositório |
+| `modules/posts/schemas.py` | Módulo (DTOs) | `PostCreate`, `PostUpdate`, `PostResponse` |
+| `modules/posts/service.py` | Módulo (Serviço) | Regras de negócio e checagem de ownership |
+| `modules/posts/dependencies.py` | Módulo (DI) | Injeta repositório concreto no serviço |
+| `infrastructure/database/models/post_model.py` | Infra | SQLAlchemy model com FK para `users.id` |
+| `infrastructure/repositories/post_sqlalchemy.py` | Infra (Adapter) | Implementação concreta do `PostRepository` |
+| `api/routes/posts.py` | API (HTTP) | 5 endpoints REST |
+
+---
+
+## 🚨 Validação Global de Erros
+
+Um handler global de `RequestValidationError` foi adicionado ao `main.py`. Ele intercepta todos os erros de validação do Pydantic em qualquer rota da aplicação e os transforma num formato limpo e consistente.
+
+**Resposta padrão (HTTP 422):**
+```json
+{
+  "errors": [
+    { "field": "title",   "message": "This field is required." },
+    { "field": "content", "message": "This field is required." }
+  ]
+}
+```
+
+- O prefixo `body` é removido do nome do campo (detalhe interno do Pydantic).
+- Mensagens desconhecidas fazem fallback para `.capitalize() + "."`, garantindo que nenhum erro seja silenciado.
+- O handler cobre **todos** os módulos presentes e futuros — nenhuma rota precisa tratar isso individualmente.

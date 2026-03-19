@@ -20,6 +20,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from src.infrastructure.database.base import Base
 from src.infrastructure.database.models import user_model  # import to register models
+from src.infrastructure.database.models import post_model  # import to register models
 from src.settings import settings
 
 # add your model's MetaData object here
