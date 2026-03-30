@@ -186,15 +186,15 @@ alembic downgrade -1
 
 [x] - Acl (Access Control Roles) *(Pronto — `Permission` enum, `Role` enum + `ROLE_PERMISSIONS` map, e `require_permissions()` dependency em uso)*
 
-[] - Model Base to extend other models
+[x] - Jobs example (FastAPI BackgroundTasks) *(Pronto — endpoint `/api/v1/posts/generate`)*
 
-[] - Dockerfiles (API and possible Database image)
+[x] - Scheduler for periodic commands (APScheduler) *(Pronto - `src.infrastructure.tasks.scheduler` disparando job por minuto)*
 
-[] - Exports example
-
-[] - Jobs example (Celery/BackgroundTasks)
+[] - Exports/Imports .csv examples
 
 [] - Tests Coverage example with PyTest
+
+[] - Dockerfiles (API and possible Database image)
 
 ---
 
@@ -209,6 +209,7 @@ O módulo `posts` implementa um CRUD completo seguindo a mesma arquitetura dos d
 | `GET` | `/api/v1/posts/` | ❌ Público | Lista todos os posts |
 | `GET` | `/api/v1/posts/{id}` | ❌ Público | Retorna um post pelo ID |
 | `POST` | `/api/v1/posts/` | ✅ JWT | Cria um novo post (author_id extraído do token) |
+| `POST` | `/api/v1/posts/generate` | ✅ JWT | Dispara um job em background (BackgroundTasks) para gerar um post falso |
 | `PUT` | `/api/v1/posts/{id}` | ✅ JWT | Atualiza um post (somente o autor pode alterar) |
 | `DELETE` | `/api/v1/posts/{id}` | ✅ JWT | Remove um post (somente o autor pode remover) |
 
@@ -227,7 +228,8 @@ O `PostService` verifica se `post.author_id == current_user_id` antes de permiti
 | `modules/posts/dependencies.py` | Módulo (DI) | Injeta repositório concreto no serviço |
 | `infrastructure/database/models/post_model.py` | Infra | SQLAlchemy model com FK para `users.id` |
 | `infrastructure/repositories/post_sqlalchemy.py` | Infra (Adapter) | Implementação concreta do `PostRepository` |
-| `api/routes/posts.py` | API (HTTP) | 5 endpoints REST |
+| `infrastructure/tasks/post_tasks.py` | Infra | Job assíncrono isolado para geração de mock de posts |
+| `api/routes/posts.py` | API (HTTP) | 6 endpoints REST (incluindo rota de dispatch de job) |
 
 ---
 

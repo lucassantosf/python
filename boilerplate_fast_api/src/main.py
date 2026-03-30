@@ -1,6 +1,9 @@
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
+
+from src.infrastructure.tasks.scheduler import start_scheduler, stop_scheduler
 
 from src.api.routes.health import router as hello_router
 from src.api.routes.auth import router as auth_router
@@ -10,8 +13,16 @@ from src.api.routes.posts import router as posts_router
 from src.settings import settings
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup actions
+    start_scheduler()
+    yield
+    # Shutdown actions
+    stop_scheduler()
+
 def create_app() -> FastAPI:
-    app = FastAPI(title=settings.PROJECT_NAME)
+    app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
     # ---------------------------------------------------------------------------
     # Global validation error handler
