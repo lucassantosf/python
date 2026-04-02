@@ -1,3 +1,5 @@
+import csv
+import io
 from typing import List
 from src.modules.posts.repository import PostRepository
 from src.modules.posts.domain import Post
@@ -38,3 +40,49 @@ class PostService:
         if post.author_id != author_id:
             raise NotFoundException("Post não encontrado ou sem permissão")
         self.post_repo.delete(post_id)
+
+    # ------------------------------------------------------------------
+    # CSV Import / Export
+    # ------------------------------------------------------------------
+
+    def import_from_csv(self, file_content: bytes) -> int:
+        """
+        Parses a CSV file (bytes) and bulk-inserts rows as posts.
+
+        Expected columns: title, content, author_id
+        Returns the number of successfully imported records.
+        """
+        text = file_content.decode("utf-8", errors="replace")
+        reader = csv.DictReader(io.StringIO(text))
+
+        required_fields = {"title", "content", "author_id"}
+        posts: List[dict] = []
+        for row in reader:
+            if not required_fields.issubset(row.keys()):
+                raise ValueError(
+                    f"CSV inválido. Colunas obrigatórias: {', '.join(required_fields)}"
+                )
+            posts.append({
+                "title": row["title"].strip(),
+                "content": row["content"].strip(),
+                "author_id": int(row["author_id"].strip()),
+            })
+
+        if not posts:
+            return 0
+
+        return self.post_repo.bulk_create(posts)
+
+    def export_to_csv(self) -> bytes:
+        """
+        Exports all posts as a UTF-8 encoded CSV byte string.
+
+        Columns: id, title, content, author_id
+        """
+        posts = self.post_repo.get_all_as_dicts()
+        output = io.StringIO()
+        fieldnames = ["id", "title", "content", "author_id"]
+        writer = csv.DictWriter(output, fieldnames=fieldnames, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(posts)
+        return output.getvalue().encode("utf-8")

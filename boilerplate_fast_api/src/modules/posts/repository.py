@@ -22,3 +22,13 @@ class PostRepository(ABC):
     @abstractmethod
     def delete(self, post_id: Any) -> bool:
         pass
+
+    @abstractmethod
+    def bulk_create(self, posts: List[dict]) -> int:
+        """Creates multiple posts at once. Returns the count of created records."""
+        pass
+
+    @abstractmethod
+    def get_all_as_dicts(self) -> List[dict]:
+        """Returns all posts as plain dicts (for serialization, e.g. CSV export)."""
+        pass

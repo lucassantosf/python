@@ -61,3 +61,25 @@ class PostSQLAlchemyRepository(PostRepository):
         self.session.delete(post_model)
         self.session.commit()
         return True
+
+    def bulk_create(self, posts: List[dict]) -> int:
+        """Inserts multiple posts in a single transaction. Returns count of created records."""
+        post_models = [
+            PostModel(
+                title=p["title"],
+                content=p["content"],
+                author_id=int(p["author_id"]),
+            )
+            for p in posts
+        ]
+        self.session.add_all(post_models)
+        self.session.commit()
+        return len(post_models)
+
+    def get_all_as_dicts(self) -> List[dict]:
+        """Returns all posts as plain dicts for easy CSV serialization."""
+        post_models = self.session.query(PostModel).all()
+        return [
+            {"id": p.id, "title": p.title, "content": p.content, "author_id": p.author_id}
+            for p in post_models
+        ]

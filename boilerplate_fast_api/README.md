@@ -190,9 +190,9 @@ alembic downgrade -1
 
 [x] - Scheduler for periodic commands (APScheduler) *(Pronto - `src.infrastructure.tasks.scheduler` disparando job por minuto)*
 
-[] - Exports/Imports .csv examples
+[x] - Exports/Imports .csv examples *(Pronto — ver seção abaixo)*
 
-[] - Tests Coverage example with PyTest
+[x] - Tests Coverage example with PyTest *(Pronto — ver seção abaixo)*
 
 [] - Dockerfiles (API and possible Database image)
 
@@ -212,6 +212,8 @@ O módulo `posts` implementa um CRUD completo seguindo a mesma arquitetura dos d
 | `POST` | `/api/v1/posts/generate` | ✅ JWT | Dispara um job em background (BackgroundTasks) para gerar um post falso |
 | `PUT` | `/api/v1/posts/{id}` | ✅ JWT | Atualiza um post (somente o autor pode alterar) |
 | `DELETE` | `/api/v1/posts/{id}` | ✅ JWT | Remove um post (somente o autor pode remover) |
+| `POST` | `/api/v1/posts/import-csv` | ✅ JWT | Importa posts a partir de um arquivo `.csv` |
+| `GET` | `/api/v1/posts/export-csv` | ❌ Público | Exporta todos os posts como arquivo `.csv` para download |
 
 ### Regra de Ownership
 
@@ -229,7 +231,44 @@ O `PostService` verifica se `post.author_id == current_user_id` antes de permiti
 | `infrastructure/database/models/post_model.py` | Infra | SQLAlchemy model com FK para `users.id` |
 | `infrastructure/repositories/post_sqlalchemy.py` | Infra (Adapter) | Implementação concreta do `PostRepository` |
 | `infrastructure/tasks/post_tasks.py` | Infra | Job assíncrono isolado para geração de mock de posts |
-| `api/routes/posts.py` | API (HTTP) | 6 endpoints REST (incluindo rota de dispatch de job) |
+| `api/routes/posts.py` | API (HTTP) | 8 endpoints REST (incluindo import/export CSV e dispatch de job) |
+
+---
+
+## 📂 Import / Export de Posts via CSV
+
+Dois endpoints foram adicionados ao módulo `posts` para suportar carga e extração de dados em massa via arquivo `.csv`.
+
+### Endpoints
+
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `POST` | `/api/v1/posts/import-csv` | ✅ JWT | Importa posts a partir de um arquivo `.csv` (multipart/form-data) |
+| `GET`  | `/api/v1/posts/export-csv` | ❌ Público | Exporta todos os posts da base como um arquivo `.csv` para download |
+
+### Formato do CSV (import)
+
+O arquivo `.csv` deve conter **obrigatoriamente** as colunas abaixo (cabeçalho na primeira linha):
+
+```csv
+title,content,author_id
+Meu primeiro post,Conteúdo do post aqui.,1
+Segundo post,Outro conteúdo.,1
+```
+
+- **Erros de coluna ausente** retornam `HTTP 422` com mensagem descritiva.
+- **Arquivo sem extensão `.csv`** também retorna `HTTP 422`.
+- Todos os registros são inseridos em **uma única transação** (`bulk_create`).
+
+### Resposta (import — sucesso)
+
+```json
+{ "message": "3 post(s) importado(s) com sucesso." }
+```
+
+### Resposta (export)
+
+Retorna diretamente o arquivo com header `Content-Disposition: attachment; filename=posts.csv` e `Content-Type: text/csv`.
 
 ---
 
@@ -250,3 +289,34 @@ Um handler global de `RequestValidationError` foi adicionado ao `main.py`. Ele i
 - O prefixo `body` é removido do nome do campo (detalhe interno do Pydantic).
 - Mensagens desconhecidas fazem fallback para `.capitalize() + "."`, garantindo que nenhum erro seja silenciado.
 - O handler cobre **todos** os módulos presentes e futuros — nenhuma rota precisa tratar isso individualmente.
+
+---
+
+## 🧪 Testes Automatizados (PyTest)
+
+O projeto conta com uma suite de testes de integração que utiliza um banco **SQLite em memória**, garantindo que os testes sejam rápidos, isolados e não afetem seu banco de dados local (`app.db`).
+
+### O que está sendo testado?
+No módulo de `posts`, cobrimos 100% das condições:
+- **CRUD Completo:** Listagem, busca por ID, criação, atualização e deleção.
+- **Segurança (Ownership):** Garante que apenas o autor pode editar/deletar seu próprio post.
+- **Autenticação:** Valida se rotas protegidas exigem o token JWT.
+- **Validação de Payload:** Testa campos obrigatórios e erros de formato (Pydantic).
+- **Import/Export CSV:** Valida importação de múltiplas linhas, colunas obrigatórias e integridade dos dados no download.
+
+### Como rodar os testes
+
+1. Certifique-se de que as dependências de teste estão instaladas:
+```bash
+pip install -r requirements.txt
+```
+
+2. Execute o comando `pytest` na raiz do projeto:
+```bash
+pytest
+```
+
+#### Dicas Úteis:
+- Para ver os nomes dos testes enquanto rodam: `pytest -v`
+- Para parar no primeiro erro: `pytest -x`
+- Para ver o print de depuração (se houver): `pytest -s`
