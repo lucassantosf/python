@@ -1,0 +1,43 @@
+services:
+  # --- Banco de Dados PostgreSQL ---
+  db:
+    image: postgres:16-alpine
+    container_name: boilerplate_db
+    restart: always
+    environment:
+      POSTGRES_USER: boilerplate_user
+      POSTGRES_PASSWORD: boilerplate_password
+      POSTGRES_DB: boilerplate_app
+    ports:
+      - "54321:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U boilerplate_user -d boilerplate_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- API FastAPI ---
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: boilerplate_api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://boilerplate_user:boilerplate_password@db:5432/boilerplate_app
+      - SECRET_KEY=minha-chave-secreta-em-desenvolvimento
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+    volumes:
+      - .:/app
+    # Opcional: --reload para desenvolvimento no volume montado
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  db_data:

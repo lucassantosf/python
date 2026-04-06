@@ -86,6 +86,14 @@ def import_posts_csv(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e),
         )
+    except Exception as e:
+        # Captura erros de integridade (como author_id inexistente no Postgres)
+        if "ForeignKeyViolation" in str(e) or "foreign key constraint" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Erro de integridade: Um ou mais author_id no CSV não existem na base de usuários.",
+            )
+        raise e
 
     return {"message": f"{count} post(s) importado(s) com sucesso."}
 

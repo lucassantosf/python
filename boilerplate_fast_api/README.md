@@ -109,6 +109,26 @@ Testes garantirão que a segregação está funcionando. Mocks simples nos módu
 
 ---
 
+## ⚙️ Configurações (Variáveis de Ambiente)
+
+O projeto utiliza o `pydantic-settings` para gerenciar as configurações. Você pode configurar a aplicação criando um arquivo `.env` a partir do exemplo fornecido:
+
+```bash
+cp .env.example .env
+```
+
+### Principais Variáveis:
+
+| Variável | Padrão | Descrição |
+|----------|--------|-----------|
+| `DATABASE_URL` | `sqlite:///./app.db` | String de conexão (ex: `postgresql://user:pass@db:5432/db`) |
+| `SECRET_KEY` | (chave padrão) | Chave para assinar os tokens JWT (Mude em Produção!) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Tempo de vida do token JWT em minutos |
+
+No Docker Compose, estas variáveis já estão pré-configuradas para conversar com o banco Postgres.
+
+---
+
 ## 🏃‍♂️ Como rodar o projeto localmente
 
 Siga os passos abaixo para configurar e ligar a API via `uvicorn`:
@@ -194,7 +214,33 @@ alembic downgrade -1
 
 [x] - Tests Coverage example with PyTest *(Pronto — ver seção abaixo)*
 
-[] - Dockerfiles (API and possible Database image)
+[x] - Dockerfiles (API and possible Database image) *(Pronto — Incluindo multi-stage build & Docker Compose)*
+
+---
+
+## 🐳 Como rodar via Docker (Recomendado)
+
+A forma mais rápida e robusta de rodar o ambiente completo (API + Banco Postgres) é usando **Docker**:
+
+### 1. Subir a stack completa
+Na raiz do projeto, execute:
+```bash
+docker compose up --build
+```
+- A API estará em: `http://localhost:8000/`
+- O Postgres estará rodando na rede interna do Docker (porta 54321 exposta para o host).
+- As migrações (`alembic upgrade head`) e o seed são executados automaticamente no start do container.
+- **Usuário Padrão de Teste:** `admin@example.com` / `admin123`.
+
+### 2. Rodar em background
+```bash
+docker compose up -d
+```
+
+### 3. Derrubar e limpar volumes
+```bash
+docker compose down -v
+```
 
 ---
 
